@@ -1,0 +1,17 @@
+[<"Console.WriteLine">]
+fun Print(x:#any)
+
+[<"Console.ReadLine">]
+fun Scan():string
+
+[<"ToUpper">]
+fun Upper(pre s:string):string
+
+[<"ToLower">]
+fun Lower(pre s:string):string
+
+[<"Decimal.Parse">]
+fun ParseNumber(s:string):number
+
+[<"AsString">]
+fun ToString(pre x:#any):string?

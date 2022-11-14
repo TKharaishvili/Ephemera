@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net46</TargetFramework>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="System.Collections.Immutable" Version="1.1.37" />
+	</ItemGroup>
+</Project>

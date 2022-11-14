@@ -1,15 +1,15 @@
-﻿using CompilerPlayground.Lexing;
+﻿using Ephemera.Lexing;
 using System.Collections.Generic;
 using System.Linq;
 using System;
-using CompilerPlayground.Parsing;
-using CompilerPlayground.SemanticAnalysis;
-using CompilerPlayground.Parsing.Expressions;
-using CompilerPlayground.Transpilation;
+using Ephemera.Parsing;
+using Ephemera.SemanticAnalysis;
+using Ephemera.Parsing.Expressions;
+using Ephemera.Transpilation;
 using System.IO;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
-using CompilerPlayground.SemanticAnalysis.Nodes;
-using CompilerPlayground.Reusable;
+using Ephemera.SemanticAnalysis.Nodes;
+using Ephemera.Reusable;
 
 namespace CompilerPlayground
 {

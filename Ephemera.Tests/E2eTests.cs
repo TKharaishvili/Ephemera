@@ -24,13 +24,67 @@ namespace Ephemera.Tests
         [InlineData("5 % 4", 1)]
         public async Task Simple_Arithmetic_Computations_Work(string expression, decimal expected)
         {
-            var cs = TranspileToCSharp($"def x = {expression}");
-            var state = await CSharpScript.RunAsync(cs);
-            var actual = Assert.Single(state.Variables).Value;
+            var actual = await CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
-        string TranspileToCSharp(string source)
+        [Theory]
+        [InlineData("true", true)]
+        [InlineData("false", false)]
+        [InlineData("\"Hello, world!\"", "Hello, world!")]
+        public async Task Simple_Expressions_Work(string expression, object expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("3", 3)]
+        [InlineData("3.5", 3.5)]
+        public async Task Number_Literal_Expressions_Work(string expression, decimal expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Fact]
+        public async Task Null_Expression_Works()
+        {
+            var cs = TranspileToCSharp($"def x: number? = null");
+            var state = await CSharpScript.RunAsync(cs);
+            var actual = Assert.Single(state.Variables).Value;
+            Assert.Null(actual);
+        }
+
+        [Theory]
+        [InlineData("!true", false)]
+        [InlineData("!false", true)]
+        //[InlineData("!!false", false)] TODO - double negation should definitely work here!
+        public async Task Boolean_Unary_Expressions_Work(string expression, bool expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("-3", -3)]
+        [InlineData("-3.5", -3.5)]
+        //[InlineData("--3", 3)] TODO - should the double negation work?
+        public async Task Number_Unary_Expressions_Work(string expression, decimal expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        private async Task<object> CompileExpression(string expression)
+        {
+            var cs = TranspileToCSharp($"def x = {expression}");
+            var state = await CSharpScript.RunAsync(cs);
+            var actual = Assert.Single(state.Variables).Value;
+            return actual;
+        }
+
+        private string TranspileToCSharp(string source)
         {
             var tokens = Lexer.Lex(source)
                 .Where(x => x.Class != TokenClass.Whitespace && x.Class != TokenClass.NewLine)

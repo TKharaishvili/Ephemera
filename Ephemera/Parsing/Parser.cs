@@ -409,7 +409,7 @@ namespace Ephemera.Parsing
                 }
                 leftOperand = new ParenthesizedExpr(token, leftOperand, closeToken);
             }
-            else if (token.Class == TokenClass.Identifier && tokens.At(index + 1).Class != TokenClass.OpenParen)
+            else if (token.Class == TokenClass.Identifier && tokens.At(index + 1)?.Class != TokenClass.OpenParen)
             {
                 leftOperand = new IdentifierExpr(token);
             }

@@ -56,6 +56,75 @@ namespace Ephemera.Tests
             Assert.Null(actual);
         }
 
+        [Fact]
+        public async Task Variable_Expression_Works()
+        {
+            var src = @"
+def x = 5
+def y = x
+";
+            var cs = TranspileToCSharp(src);
+            var state = await CSharpScript.RunAsync(cs);
+            var actual = state.Variables[1].Value;
+            Assert.Equal(5m, actual);
+        }
+
+        [Theory]
+        [InlineData("Three()", 3)]
+        [InlineData("Add(3, 4)", 7)]
+        [InlineData("3.Inc()", 4)]
+        [InlineData("3.Inc().IncBy(5)", 9)]
+        public async Task Function_Invocation_Expression_Works(string expression, decimal expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("3", "x?.Inc()", 4)]
+        [InlineData("3", "x?.IncBy(4)", 7)]
+        public Task Conditional_Function_Invocation_Expression_Works_For_Non_Nulls(string valueOfX, string expression, decimal expected)
+        {
+            return Conditional_Function_Invocation_Expression_Works(valueOfX, expression, expected);
+        }
+
+        [Theory]
+        [InlineData("null", "x?.Inc()", null)]
+        [InlineData("3", "x?.TakesNumReturnsNull()?.Inc()", null)]
+        [InlineData("null", "x?.TakesNumReturnsNull()?.Inc()", null)]
+        public Task Conditional_Function_Invocation_Expression_Works_For_Nulls(string valueOfX, string expression, object expected)
+        {
+            return Conditional_Function_Invocation_Expression_Works(valueOfX, expression, expected);
+        }
+
+        [Theory]
+        [InlineData("3", "x?.Inc().Inc()", 5)]
+        [InlineData("3", "x.TakesAndReturnsNullableNum()?.Inc()", 4)]
+        public Task Mixed_Function_Invocation_Expression_Works_For_Non_Nulls(string valueOfX, string expression, decimal expected)
+        {
+            return Conditional_Function_Invocation_Expression_Works(valueOfX, expression, expected);
+        }
+
+        [Theory]
+        [InlineData("null", "x?.Inc().Inc()", null)]
+        [InlineData("null", "x.TakesAndReturnsNullableNum()?.Inc()", null)]
+        public Task Mixed_Function_Invocation_Expression_Works_For_Nulls(string valueOfX, string expression, object expected)
+        {
+            return Conditional_Function_Invocation_Expression_Works(valueOfX, expression, expected);
+        }
+
+        private async Task Conditional_Function_Invocation_Expression_Works(string valueOfX, string expression, object expected)
+        {
+            var src = $@"
+def x: number? = {valueOfX}
+def y = {expression}
+";
+            var cs = TranspileToCSharp(src);
+            var state = await CSharpScript.RunAsync(cs);
+            var actual = state.Variables[1].Value;
+            Assert.Equal(expected, actual);
+        }
+
         [Theory]
         [InlineData("!true", false)]
         [InlineData("!false", true)]
@@ -86,6 +155,40 @@ namespace Ephemera.Tests
 
         private string TranspileToCSharp(string source)
         {
+            var additionalSource = @"
+fun Three()
+{
+    return 3
+}
+
+fun Add(x:number, y:number)
+{
+    return x + y
+}
+
+fun Inc(pre x:number)
+{
+    return x + 1
+}
+
+fun IncBy(pre x:number, y:number)
+{
+    return x + y
+}
+
+fun TakesNumReturnsNull(pre x:number):number?
+{
+    return null
+}
+
+fun TakesAndReturnsNullableNum(pre x:number?)
+{
+    return x
+}
+";
+
+            source = additionalSource + source;
+
             var tokens = Lexer.Lex(source)
                 .Where(x => x.Class != TokenClass.Whitespace && x.Class != TokenClass.NewLine)
                 .ToList();

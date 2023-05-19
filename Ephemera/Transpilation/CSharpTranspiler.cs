@@ -38,7 +38,7 @@ namespace Ephemera.Transpilation
 
 
 
-        public string Transpile(IReadOnlyList<SemanticNode> nodes)
+        public string Transpile(IReadOnlyList<SemanticNode> nodes, bool generateTestingSource = false)
         {
             var code = TranspileInner(nodes);
 
@@ -57,8 +57,28 @@ namespace Ephemera.Transpilation
               .AppendLine("static decimal? _Percent(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x % y;")
               .AppendLine()
               .AppendLine("public static string AsString(this object obj) => obj?.ToString();")
-              .AppendLine()
-              .AppendLine(code);
+              .AppendLine();
+
+            if (generateTestingSource)
+            {
+                sb.AppendLine("static int trueCount = 0;")
+                  .AppendLine("static int falseCount = 0;")
+                  .AppendLine()
+                  .AppendLine("static bool True()")
+                  .AppendLine("{")
+                  .AppendLine("\ttrueCount++;")
+                  .AppendLine("\treturn true;")
+                  .AppendLine("}")
+                  .AppendLine()
+                  .AppendLine("static bool False()")
+                  .AppendLine("{")
+                  .AppendLine("\tfalseCount++;")
+                  .AppendLine("\treturn false;")
+                  .AppendLine("}")
+                  .AppendLine();
+            }
+
+            sb.AppendLine(code);
             return sb.ToString();
         }
 
@@ -191,7 +211,7 @@ namespace Ephemera.Transpilation
             var parenthesized = node as ParenthesizedNode;
             if (parenthesized != null)
             {
-                return $"({ TranspileOperand(parenthesized.InnerNode) })";
+                return $"({TranspileOperand(parenthesized.InnerNode)})";
             }
 
             var funcInvocation = node as FuncInvocationNode;
@@ -328,7 +348,7 @@ namespace Ephemera.Transpilation
             var source = TranspileOperand(node.Source, node.Type);
             var name = RegisterDefinition(node);
 
-            return $"{type} { name } = { source };";
+            return $"{type} {name} = {source};";
         }
 
         string RegisterDefinition(DefinitionNode node)

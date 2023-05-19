@@ -50,9 +50,9 @@ namespace Ephemera.Tests
         [Fact]
         public async Task Null_Expression_Works()
         {
-            var cs = TranspileToCSharp($"def x: number? = null");
+            var cs = TranspileToCSharp($"def result: number? = null");
             var state = await CSharpScript.RunAsync(cs);
-            var actual = Assert.Single(state.Variables).Value;
+            var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Null(actual);
         }
 
@@ -61,11 +61,11 @@ namespace Ephemera.Tests
         {
             var src = @"
 def x = 5
-def y = x
+def result = x
 ";
             var cs = TranspileToCSharp(src);
             var state = await CSharpScript.RunAsync(cs);
-            var actual = state.Variables[1].Value;
+            var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Equal(5m, actual);
         }
 
@@ -117,11 +117,11 @@ def y = x
         {
             var src = $@"
 def x: number? = {valueOfX}
-def y = {expression}
+def result = {expression}
 ";
             var cs = TranspileToCSharp(src);
             var state = await CSharpScript.RunAsync(cs);
-            var actual = state.Variables[1].Value;
+            var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Equal(expected, actual);
         }
 
@@ -145,11 +145,53 @@ def y = {expression}
             Assert.Equal(expected, actual);
         }
 
+        [Theory]
+        [InlineData("true && true", true)]
+        [InlineData("true && false", false)]
+        [InlineData("true || true", true)]
+        [InlineData("true || false", true)]
+        [InlineData("false && false", false)]
+        [InlineData("false && true", false)]
+        [InlineData("false || false", false)]
+        [InlineData("false || true", true)]
+        public async Task Boolean_Binary_Expressions_Work(string expression, bool expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("True() && True()", 2, 0, true)]
+        [InlineData("True() && False()", 1, 1, false)]
+        [InlineData("True() || True()", 1, 0, true)]
+        [InlineData("True() || False()", 1, 0, true)]
+        [InlineData("False() && False()", 0, 1, false)]
+        [InlineData("False() && True()", 0, 1, false)]
+        [InlineData("False() || False()", 0, 2, false)]
+        [InlineData("False() || True()", 1, 1, true)]
+        public async Task Boolean_Binary_Expressions_Short_Circuit_In_Appropriate_Cases
+        (
+            string expression,
+            int expectedTrueCount,
+            int expectedFalseCount,
+            bool expectedResult
+        )
+        {
+            var cs = TranspileToCSharp($"def result = {expression}");
+            var state = await CSharpScript.RunAsync(cs);
+            var actualTrueCount = state.Variables.Single(v => v.Name == "trueCount").Value;
+            var actualFalseCount = state.Variables.Single(v => v.Name == "falseCount").Value;
+            var actualResult = state.Variables.Single(v => v.Name == "result").Value;
+            Assert.Equal(expectedTrueCount, actualTrueCount);
+            Assert.Equal(expectedFalseCount, actualFalseCount);
+            Assert.Equal(expectedResult, actualResult);
+        }
+
         private async Task<object> CompileExpression(string expression)
         {
-            var cs = TranspileToCSharp($"def x = {expression}");
+            var cs = TranspileToCSharp($"def result = {expression}");
             var state = await CSharpScript.RunAsync(cs);
-            var actual = Assert.Single(state.Variables).Value;
+            var actual = state.Variables.Single(v => v.Name == "result").Value;
             return actual;
         }
 
@@ -185,6 +227,12 @@ fun TakesAndReturnsNullableNum(pre x:number?)
 {
     return x
 }
+
+[<""True"">]
+fun True():bool
+
+[<""False"">]
+fun False():bool
 ";
 
             source = additionalSource + source;
@@ -212,7 +260,7 @@ fun TakesAndReturnsNullableNum(pre x:number?)
                 throw new Exception("Analyser failed with error(s) - " + analyser.CodeErrors.First().Message);
             }
 
-            var cSharpCode = new CSharpTranspiler().Transpile(nodes);
+            var cSharpCode = new CSharpTranspiler().Transpile(nodes, generateTestingSource: true);
 
             return cSharpCode;
         }

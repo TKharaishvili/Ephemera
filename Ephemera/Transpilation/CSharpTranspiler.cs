@@ -75,6 +75,14 @@ namespace Ephemera.Transpilation
                   .AppendLine("\tfalseCount++;")
                   .AppendLine("\treturn false;")
                   .AppendLine("}")
+                  .AppendLine()
+                  .AppendLine("static int fourCount = 0;")
+                  .AppendLine()
+                  .AppendLine("static decimal Four()")
+                  .AppendLine("{")
+                  .AppendLine("\tfourCount++;")
+                  .AppendLine("\treturn 4;")
+                  .AppendLine("}")
                   .AppendLine();
             }
 

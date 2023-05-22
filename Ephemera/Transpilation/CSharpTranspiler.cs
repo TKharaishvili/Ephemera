@@ -57,6 +57,8 @@ namespace Ephemera.Transpilation
               .AppendLine("static decimal? _Percent(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x % y;")
               .AppendLine()
               .AppendLine("public static string AsString(this object obj) => obj?.ToString();")
+              .AppendLine()
+              .AppendLine("static decimal? ephemeralDecimal;")
               .AppendLine();
 
             if (generateTestingSource)
@@ -537,51 +539,17 @@ namespace Ephemera.Transpilation
 
         string Transpile(NumberBooleanOperationNode node)
         {
-            if (!(node.Right is NumberBooleanOperationNode))
-            {
-                var left = TranspileOperand(node.Left);
-                var rightString = TranspileOperand(node.Right);
-                var op = node.BinaryExpr.Operator.Lexeme.Word;
+            var sb = new StringBuilder();
+            sb.Append($"{TranspileOperand(node.Left)} {node.BinaryExpr.Operator.Lexeme.Word} ");
 
-                return $"{left} {op} {rightString}";
+            while (node.Right is NumberBooleanOperationNode r)
+            {
+                node = r;
+                sb.Append($"(ephemeralDecimal = {TranspileOperand(node.Left)}) && ephemeralDecimal {node.BinaryExpr.Operator.Lexeme.Word} ");
             }
 
-            var variables = new List<string>();
-            var expression = new StringBuilder();
+            sb.Append(TranspileOperand(node.Right));
 
-            var variableNumber = 0;
-            OperandNode right = node;
-            while (right is NumberBooleanOperationNode)
-            {
-                var r = right as NumberBooleanOperationNode;
-
-                var variableName = $"_{variableNumber++}";
-                variables.Add($"var {variableName} = {TranspileOperand(r.Left)};");
-
-                if (expression.Length > 0)
-                {
-                    expression.Append($"{variableName} && ");
-                }
-                expression.Append($"{variableName} {r.BinaryExpr.Operator.Lexeme.Word} ");
-
-                right = r.Right;
-            }
-
-            expression.Append(TranspileOperand(right));
-
-            var sb = new StringBuilder().AppendAll("new Func<bool>", Environment.NewLine);
-            AppendWithLine(sb, "(() =>");
-            AppendWithLine(sb, "{");
-
-            PushTab();
-            foreach (var variable in variables)
-            {
-                AppendWithLine(sb, variable);
-            }
-            AppendWithLine(sb, "return ", expression.ToString(), ";");
-            PopTab();
-
-            Append(sb, "})()");
             return sb.ToString();
         }
 

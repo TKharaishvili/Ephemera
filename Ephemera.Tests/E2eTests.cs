@@ -188,6 +188,17 @@ def result = {expression}
         }
 
         [Theory]
+        [InlineData("3 < 4", true)]
+        [InlineData("3 > 4", false)]
+        [InlineData("5 < 4", false)]
+        [InlineData("5 > 4", true)]
+        public async Task Comparison_Expressions_Work(string expression, bool expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
         [InlineData("3 < 4 < 5", true)]
         [InlineData("3 > 4 > 5", false)]
         [InlineData("5 < 4 < 3", false)]
@@ -221,6 +232,34 @@ def result = {expression}
             Assert.Equal(expectedResult, actualResult);
         }
 
+        [Theory]
+        [InlineData("2 < 3 < 4 < 5", true)]
+        [InlineData("2 > 3 > 4 > 5", false)]
+        [InlineData("5 < 4 < 3 < 2", false)]
+        [InlineData("5 > 4 > 3 > 2", true)]
+        public async Task Quadruple_Comparison_Expressions_Work(string expression, bool expected)
+        {
+            var actual = await CompileExpression(expression);
+            Assert.Equal(expected, actual);
+        }
+
+        [Theory]
+        [InlineData("2 < Three() < Four() < 5", 1, 1, true)]
+        [InlineData("2 > Three() > Four() > 5", 1, 0, false)]
+        [InlineData("5 < Four() < Three() < 2", 0, 1, false)]
+        [InlineData("5 > Four() > Three() > 2", 1, 1, true)]
+        public async Task Quadruple_Comparison_Expression_Middle_Operands_Get_Evaluated_Once(string expression, int expectedThreeCount, int expectedFourCount, bool expectedResult)
+        {
+            var cs = TranspileToCSharp($"def result = {expression}");
+            var state = await CSharpScript.RunAsync(cs);
+            var actualThreeCount = state.Variables.Single(v => v.Name == "threeCount").Value;
+            var actualFourCount = state.Variables.Single(v => v.Name == "fourCount").Value;
+            var actualResult = state.Variables.Single(v => v.Name == "result").Value;
+            Assert.Equal(expectedThreeCount, actualThreeCount);
+            Assert.Equal(expectedFourCount, actualFourCount);
+            Assert.Equal(expectedResult, actualResult);
+        }
+
         private async Task<object> CompileExpression(string expression)
         {
             var cs = TranspileToCSharp($"def result = {expression}");
@@ -232,11 +271,6 @@ def result = {expression}
         private string TranspileToCSharp(string source)
         {
             var additionalSource = @"
-fun Three()
-{
-    return 3
-}
-
 fun Add(x:number, y:number)
 {
     return x + y
@@ -267,6 +301,9 @@ fun True():bool
 
 [<""False"">]
 fun False():bool
+
+[<""Three"">]
+fun Three():number
 
 [<""Four"">]
 fun Four():number

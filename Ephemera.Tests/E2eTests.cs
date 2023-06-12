@@ -1,12 +1,8 @@
-using Ephemera.Lexing;
-using Ephemera.Parsing;
-using Ephemera.SemanticAnalysis;
-using Ephemera.Transpilation;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
-using System;
 using System.Threading.Tasks;
 using Xunit;
 using System.Linq;
+using TH = Ephemera.Tests.TestHelpers;
 
 namespace Ephemera.Tests
 {
@@ -24,7 +20,7 @@ namespace Ephemera.Tests
         [InlineData("5 % 4", 1)]
         public async Task Simple_Arithmetic_Computations_Work(string expression, decimal expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -34,7 +30,7 @@ namespace Ephemera.Tests
         [InlineData("\"Hello, world!\"", "Hello, world!")]
         public async Task Simple_Expressions_Work(string expression, object expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -43,14 +39,14 @@ namespace Ephemera.Tests
         [InlineData("3.5", 3.5)]
         public async Task Number_Literal_Expressions_Work(string expression, decimal expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
         [Fact]
         public async Task Null_Expression_Works()
         {
-            var cs = TranspileToCSharp($"def result: number? = null");
+            var cs = TH.TranspileToCSharp($"def result: number? = null");
             var state = await CSharpScript.RunAsync(cs);
             var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Null(actual);
@@ -63,7 +59,7 @@ namespace Ephemera.Tests
 def x = 5
 def result = x
 ";
-            var cs = TranspileToCSharp(src);
+            var cs = TH.TranspileToCSharp(src);
             var state = await CSharpScript.RunAsync(cs);
             var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Equal(5m, actual);
@@ -76,7 +72,7 @@ def result = x
         [InlineData("3.Inc().IncBy(5)", 9)]
         public async Task Function_Invocation_Expression_Works(string expression, decimal expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -119,7 +115,7 @@ def result = x
 def x: number? = {valueOfX}
 def result = {expression}
 ";
-            var cs = TranspileToCSharp(src);
+            var cs = TH.TranspileToCSharp(src);
             var state = await CSharpScript.RunAsync(cs);
             var actual = state.Variables.Single(v => v.Name == "result").Value;
             Assert.Equal(expected, actual);
@@ -131,7 +127,7 @@ def result = {expression}
         //[InlineData("!!false", false)] TODO - double negation should definitely work here!
         public async Task Boolean_Unary_Expressions_Work(string expression, bool expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -141,7 +137,7 @@ def result = {expression}
         //[InlineData("--3", 3)] TODO - should the double negation work?
         public async Task Number_Unary_Expressions_Work(string expression, decimal expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -156,7 +152,7 @@ def result = {expression}
         [InlineData("false || true", true)]
         public async Task Boolean_Binary_Expressions_Work(string expression, bool expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -177,7 +173,7 @@ def result = {expression}
             bool expectedResult
         )
         {
-            var cs = TranspileToCSharp($"def result = {expression}");
+            var cs = TH.TranspileToCSharp($"def result = {expression}");
             var state = await CSharpScript.RunAsync(cs);
             var actualTrueCount = state.Variables.Single(v => v.Name == "trueCount").Value;
             var actualFalseCount = state.Variables.Single(v => v.Name == "falseCount").Value;
@@ -194,7 +190,7 @@ def result = {expression}
         [InlineData("5 > 4", true)]
         public async Task Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -209,7 +205,7 @@ def result = {expression}
         [InlineData("3 < 4 > 3", true)]
         public async Task Triple_Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -224,7 +220,7 @@ def result = {expression}
         [InlineData("3 < Four() > 3", true)]
         public async Task Triple_Comparison_Expression_Middle_Operand_Gets_Evaluated_Once(string expression, bool expectedResult)
         {
-            var cs = TranspileToCSharp($"def result = {expression}");
+            var cs = TH.TranspileToCSharp($"def result = {expression}");
             var state = await CSharpScript.RunAsync(cs);
             var actualFourCount = state.Variables.Single(v => v.Name == "fourCount").Value;
             var actualResult = state.Variables.Single(v => v.Name == "result").Value;
@@ -239,7 +235,7 @@ def result = {expression}
         [InlineData("5 > 4 > 3 > 2", true)]
         public async Task Quadruple_Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await CompileExpression(expression);
+            var actual = await TH.CompileExpression(expression);
             Assert.Equal(expected, actual);
         }
 
@@ -250,7 +246,7 @@ def result = {expression}
         [InlineData("5 > Four() > Three() > 2", 1, 1, true)]
         public async Task Quadruple_Comparison_Expression_Middle_Operands_Get_Evaluated_Once(string expression, int expectedThreeCount, int expectedFourCount, bool expectedResult)
         {
-            var cs = TranspileToCSharp($"def result = {expression}");
+            var cs = TH.TranspileToCSharp($"def result = {expression}");
             var state = await CSharpScript.RunAsync(cs);
             var actualThreeCount = state.Variables.Single(v => v.Name == "threeCount").Value;
             var actualFourCount = state.Variables.Single(v => v.Name == "fourCount").Value;
@@ -258,85 +254,6 @@ def result = {expression}
             Assert.Equal(expectedThreeCount, actualThreeCount);
             Assert.Equal(expectedFourCount, actualFourCount);
             Assert.Equal(expectedResult, actualResult);
-        }
-
-        private async Task<object> CompileExpression(string expression)
-        {
-            var cs = TranspileToCSharp($"def result = {expression}");
-            var state = await CSharpScript.RunAsync(cs);
-            var actual = state.Variables.Single(v => v.Name == "result").Value;
-            return actual;
-        }
-
-        private string TranspileToCSharp(string source)
-        {
-            var additionalSource = @"
-fun Add(x:number, y:number)
-{
-    return x + y
-}
-
-fun Inc(pre x:number)
-{
-    return x + 1
-}
-
-fun IncBy(pre x:number, y:number)
-{
-    return x + y
-}
-
-fun TakesNumReturnsNull(pre x:number):number?
-{
-    return null
-}
-
-fun TakesAndReturnsNullableNum(pre x:number?)
-{
-    return x
-}
-
-[<""True"">]
-fun True():bool
-
-[<""False"">]
-fun False():bool
-
-[<""Three"">]
-fun Three():number
-
-[<""Four"">]
-fun Four():number
-";
-
-            source = additionalSource + source;
-
-            var tokens = Lexer.Lex(source)
-                .Where(x => x.Class != TokenClass.Whitespace && x.Class != TokenClass.NewLine)
-                .ToList();
-
-            if (tokens == null)
-            {
-                throw new Exception("Lexing failed");
-            }
-
-            var parseResult = Parser.Parse(tokens);
-            if (parseResult.Fail)
-            {
-                throw new Exception("Parsing failed with an error - " + parseResult.Error.Message);
-            }
-
-            var analyser = new SemanticAnalyser();
-            var nodes = analyser.Analyse(parseResult.Expr);
-
-            if (analyser.CodeErrors.Any())
-            {
-                throw new Exception("Analyser failed with error(s) - " + analyser.CodeErrors.First().Message);
-            }
-
-            var cSharpCode = new CSharpTranspiler().Transpile(nodes, generateTestingSource: true);
-
-            return cSharpCode;
         }
     }
 }

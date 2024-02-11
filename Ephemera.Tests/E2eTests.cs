@@ -9,18 +9,27 @@ namespace Ephemera.Tests
     public class E2eTests
     {
         [Theory]
-        [InlineData("3 + 4", 7)]
-        [InlineData("3 - 4", -1)]
-        [InlineData("3 + -4", -1)]
-        [InlineData("-4 + 3", -1)]
-        [InlineData("3 * 4", 12)]
-        [InlineData("3 / 4", 0.75)]
-        [InlineData("3 % 4", 3)]
-        [InlineData("7 % 4", 3)]
-        [InlineData("5 % 4", 1)]
-        public async Task Simple_Arithmetic_Computations_Work(string expression, decimal expected)
+        [InlineData("3 + 4", 7, false)]
+        [InlineData("3 + 4", 7, true)]
+        [InlineData("3 - 4", -1, false)]
+        [InlineData("3 - 4", -1, true)]
+        [InlineData("3 + -4", -1, false)]
+        [InlineData("3 + -4", -1, true)]
+        [InlineData("-4 + 3", -1, false)]
+        [InlineData("-4 + 3", -1, true)]
+        [InlineData("3 * 4", 12, false)]
+        [InlineData("3 * 4", 12, true)]
+        [InlineData("3 / 4", 0.75, false)]
+        [InlineData("3 / 4", 0.75, true)]
+        [InlineData("3 % 4", 3, false)]
+        [InlineData("3 % 4", 3, true)]
+        [InlineData("7 % 4", 3, false)]
+        [InlineData("7 % 4", 3, true)]
+        [InlineData("5 % 4", 1, false)]
+        [InlineData("5 % 4", 1, true)]
+        public async Task Simple_Arithmetic_Computations_Work(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 

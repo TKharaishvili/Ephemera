@@ -136,22 +136,26 @@ def result = {expression}
         }
 
         [Theory]
-        [InlineData("!true", false)]
-        [InlineData("!false", true)]
+        [InlineData("!true", false, false)]
+        [InlineData("!true", false, true)]
+        [InlineData("!false", true, false)]
+        [InlineData("!false", true, true)]
         //[InlineData("!!false", false)] TODO - double negation should definitely work here!
-        public async Task Boolean_Unary_Expressions_Work(string expression, bool expected)
+        public async Task Boolean_Unary_Expressions_Work(string expression, bool expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 
         [Theory]
-        [InlineData("-3", -3)]
-        [InlineData("-3.5", -3.5)]
+        [InlineData("-3", -3, false)]
+        [InlineData("-3", -3, true)]
+        [InlineData("-3.5", -3.5, false)]
+        [InlineData("-3.5", -3.5, true)]
         //[InlineData("--3", 3)] TODO - should the double negation work?
-        public async Task Number_Unary_Expressions_Work(string expression, decimal expected)
+        public async Task Number_Unary_Expressions_Work(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 

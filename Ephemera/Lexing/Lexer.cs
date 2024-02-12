@@ -93,7 +93,7 @@ namespace Ephemera.Lexing
                     if (input.CharAt(i + 1) == '|')
                     {
                         i++;
-                        tokens.Add(new Token(TokenClass.AndOperator, "||", i, i + 1));
+                        tokens.Add(new Token(TokenClass.OrOperator, "||", i, i + 1));
                     }
                     else
                     {

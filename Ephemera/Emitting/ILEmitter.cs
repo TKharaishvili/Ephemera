@@ -1,5 +1,7 @@
 ﻿using Ephemera.Lexing;
+using Ephemera.Parsing;
 using Ephemera.SemanticAnalysis.Nodes;
+using Ephemera.SemanticAnalysis.Typing;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System;
@@ -16,12 +18,16 @@ public class ILEmitter
     private readonly TypeDefinition _class;
 
     private readonly TypeReference _decimalRef;
+    private readonly TypeReference _boolRef;
+    private readonly TypeReference _stringRef;
+
     private readonly MethodReference _decimalCtor;
     private readonly MethodReference _add;
     private readonly MethodReference _subtract;
     private readonly MethodReference _multiply;
     private readonly MethodReference _divide;
     private readonly MethodReference _modulus;
+    private readonly MethodReference _negate;
 
     public ILEmitter(string assemblyName, string className, string methodName)
     {
@@ -32,12 +38,16 @@ public class ILEmitter
         var module = _assembly.MainModule;
 
         _decimalRef = module.ImportReference(typeof(decimal));
+        _boolRef = module.ImportReference(typeof(bool));
+        _stringRef = module.ImportReference(typeof(string));
+
         _decimalCtor = module.ImportReference(typeof(decimal).GetConstructor([typeof(int), typeof(int), typeof(int), typeof(bool), typeof(byte)]));
         _add = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Add), [typeof(decimal), typeof(decimal)]));
         _subtract = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Subtract), [typeof(decimal), typeof(decimal)]));
         _multiply = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Multiply), [typeof(decimal), typeof(decimal)]));
         _divide = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Divide), [typeof(decimal), typeof(decimal)]));
         _modulus = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Remainder), [typeof(decimal), typeof(decimal)]));
+        _negate = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Negate), [typeof(decimal)]));
 
         _class = new TypeDefinition(assemblyName, className, TypeAttributes.Public | TypeAttributes.Class)
         {
@@ -47,69 +57,101 @@ public class ILEmitter
         module.Types.Add(_class);
     }
 
-    private bool ExtractNumber(OperandNode operand, out decimal result)
-    {
-        if (operand is NumberLiteralNode n)
-        {
-            result = decimal.Parse(n.Literal.Token.Word);
-            return true;
-        }
-
-        if (operand is UnaryOperationNode lu &&
-            lu.Operator.Class == TokenClass.MinusOperator &&
-            lu.Operand is NumberLiteralNode l)
-        {
-            result = -decimal.Parse(l.Literal.Token.Word);
-            return true;
-        }
-
-        result = 0;
-        return false;
-    }
-
     public Assembly Emit(SemanticNode node)
     {
-        if (node is NumberOperationNode op && ExtractNumber(op.Left, out var ld) && ExtractNumber(op.Right, out var rd))
+        if (node is OperandNode op && op.TypeDescriptor is SimpleTypeDescriptor st)
         {
-            var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, _decimalRef);
+            var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, GetType(st));
             _class.Methods.Add(method);
 
             var il = method.Body.GetILProcessor();
 
-            var lparts = DecomposeDecimal(ld);
-            var rparts = DecomposeDecimal(rd);
+            EmitForExpression(node, il);
 
-            il.Emit(OpCodes.Ldc_I4, lparts.Low);
-            il.Emit(OpCodes.Ldc_I4, lparts.Mid);
-            il.Emit(OpCodes.Ldc_I4, lparts.High);
-            il.Emit(OpCodes.Ldc_I4, lparts.IsNegative ? 1 : 0);
-            il.Emit(OpCodes.Ldc_I4, (int)lparts.Scale);
-            il.Emit(OpCodes.Newobj, _decimalCtor);
-
-            il.Emit(OpCodes.Ldc_I4, rparts.Low);
-            il.Emit(OpCodes.Ldc_I4, rparts.Mid);
-            il.Emit(OpCodes.Ldc_I4, rparts.High);
-            il.Emit(OpCodes.Ldc_I4, rparts.IsNegative ? 1 : 0);
-            il.Emit(OpCodes.Ldc_I4, (int)rparts.Scale);
-            il.Emit(OpCodes.Newobj, _decimalCtor);
-
-            il.Emit(OpCodes.Call, GetDecimalOperation(op.BinaryExpr.Operator.Class));
             il.Emit(OpCodes.Ret);
 
             var ms = new MemoryStream();
             _assembly.Write(ms);
             return Assembly.Load(ms.GetBuffer());
         }
-
         throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
+    }
+
+    private void EmitForExpression(SemanticNode node, ILProcessor il)
+    {
+        switch (node)
+        {
+            case NumberLiteralNode n:
+                {
+                    var d = decimal.Parse(n.Literal.Token.Word);
+                    var parts = DecomposeDecimal(d);
+
+                    il.Emit(OpCodes.Ldc_I4, parts.Low);
+                    il.Emit(OpCodes.Ldc_I4, parts.Mid);
+                    il.Emit(OpCodes.Ldc_I4, parts.High);
+                    il.Emit(OpCodes.Ldc_I4, parts.IsNegative ? 1 : 0);
+                    il.Emit(OpCodes.Ldc_I4, (int)parts.Scale);
+                    il.Emit(OpCodes.Newobj, _decimalCtor);
+                    break;
+                }
+            case BooleanLiteralNode b:
+                {
+                    if (b.Literal.Token.Class == TokenClass.TrueKeyword)
+                    {
+                        il.Emit(OpCodes.Ldc_I4_1);
+                        break;
+                    }
+
+                    if (b.Literal.Token.Class == TokenClass.FalseKeyword)
+                    {
+                        il.Emit(OpCodes.Ldc_I4_0);
+                        break;
+                    }
+
+                    throw new ArgumentOutOfRangeException("Boolean literal must either be true or false");
+                }
+            case StringLiteralNode s:
+                {
+                    il.Emit(OpCodes.Ldstr, s.Literal.Token.Word.Trim('"'));
+                    break;
+                }
+            case UnaryOperationNode u:
+                {
+                    EmitForExpression(u.Operand, il);
+
+                    if (u.Operator.Class == TokenClass.MinusOperator)
+                    {
+                        il.Emit(OpCodes.Call, _negate);
+                        break;
+                    }
+
+                    if (u.Operator.Class == TokenClass.NegationOperator)
+                    {
+                        il.Emit(OpCodes.Ldc_I4_0);
+                        il.Emit(OpCodes.Ceq);
+                        break;
+                    }
+
+                    throw new ArgumentOutOfRangeException("A unary operation can must either have a '-' or a '!' operator");
+                }
+            case NumberOperationNode op:
+                {
+                    EmitForExpression(op.Left, il);
+                    EmitForExpression(op.Right, il);
+                    il.Emit(OpCodes.Call, GetDecimalOperation(op.BinaryExpr.Operator.Class));
+                    break;
+                }
+            default:
+                throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
+        }
     }
 
     private static (int Low, int Mid, int High, bool IsNegative, byte Scale) DecomposeDecimal(decimal d)
     {
         int[] parts = decimal.GetBits(d);
-        var sign = (parts[3] & 0x80000000) != 0;
+        var isNegative = (parts[3] & 0x80000000) != 0;
         var scale = (byte)((parts[3] >> 16) & 0x7F);
-        return (parts[0], parts[1], parts[2], sign, scale);
+        return (parts[0], parts[1], parts[2], isNegative, scale);
     }
 
     private MethodReference GetDecimalOperation(TokenClass c)
@@ -122,6 +164,17 @@ public class ILEmitter
             TokenClass.DivisionOperator => _divide,
             TokenClass.PercentOperator => _modulus,
             _ => throw new ArgumentOutOfRangeException(),
+        };
+    }
+
+    private TypeReference GetType(SimpleTypeDescriptor st)
+    {
+        return st.SimpleType switch
+        {
+            SimpleType.Number => _decimalRef,
+            SimpleType.Bool => _boolRef,
+            SimpleType.String => _stringRef,
+            _ => throw new ArgumentOutOfRangeException()
         };
     }
 }

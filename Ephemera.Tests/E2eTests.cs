@@ -34,21 +34,26 @@ namespace Ephemera.Tests
         }
 
         [Theory]
-        [InlineData("true", true)]
-        [InlineData("false", false)]
-        [InlineData("\"Hello, world!\"", "Hello, world!")]
-        public async Task Simple_Expressions_Work(string expression, object expected)
+        [InlineData("true", true, false)]
+        [InlineData("true", true, true)]
+        [InlineData("false", false, false)]
+        [InlineData("false", false, true)]
+        [InlineData("\"Hello, world!\"", "Hello, world!", false)]
+        [InlineData("\"Hello, world!\"", "Hello, world!", true)]
+        public async Task Simple_Expressions_Work(string expression, object expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 
         [Theory]
-        [InlineData("3", 3)]
-        [InlineData("3.5", 3.5)]
-        public async Task Number_Literal_Expressions_Work(string expression, decimal expected)
+        [InlineData("3", 3, false)]
+        [InlineData("3", 3, true)]
+        [InlineData("3.5", 3.5, false)]
+        [InlineData("3.5", 3.5, true)]
+        public async Task Number_Literal_Expressions_Work(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 

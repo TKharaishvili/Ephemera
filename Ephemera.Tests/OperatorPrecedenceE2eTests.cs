@@ -7,29 +7,35 @@ namespace Ephemera.Tests
     public class OperatorPrecedenceE2eTests
     {
         [Theory]
-        [InlineData("2 + 3 * 4", 14)]
-        [InlineData("10 - 2 * 3", 4)]
-        public async Task Multiplication_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected)
+        [InlineData("2 + 3 * 4", 14, false)]
+        [InlineData("2 + 3 * 4", 14, true)]
+        [InlineData("10 - 2 * 3", 4, false)]
+        [InlineData("10 - 2 * 3", 4, true)]
+        public async Task Multiplication_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 
         [Theory]
-        [InlineData("2 + 3 / 4", 2.75)]
-        [InlineData("10 - 9 / 3", 7)]
-        public async Task Division_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected)
+        [InlineData("2 + 3 / 4", 2.75, false)]
+        [InlineData("2 + 3 / 4", 2.75, true)]
+        [InlineData("10 - 9 / 3", 7, false)]
+        [InlineData("10 - 9 / 3", 7, true)]
+        public async Task Division_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 
         [Theory]
-        [InlineData("2 + 9 % 4", 3)]
-        [InlineData("10 - 9 % 7", 8)]
-        public async Task Modulo_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected)
+        [InlineData("2 + 9 % 4", 3, false)]
+        [InlineData("2 + 9 % 4", 3, true)]
+        [InlineData("10 - 9 % 7", 8, false)]
+        [InlineData("10 - 9 % 7", 8, true)]
+        public async Task Modulo_Binds_Stronger_Than_Addition_And_Subtraction(string expression, decimal expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 

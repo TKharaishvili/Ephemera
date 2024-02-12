@@ -132,14 +132,50 @@ public class ILEmitter
                         break;
                     }
 
-                    throw new ArgumentOutOfRangeException("A unary operation can must either have a '-' or a '!' operator");
+                    throw new ArgumentOutOfRangeException("A unary operation must either have a '-' or a '!' operator");
                 }
-            case NumberOperationNode op:
+            case NumberOperationNode nop:
                 {
-                    EmitForExpression(op.Left, il);
-                    EmitForExpression(op.Right, il);
-                    il.Emit(OpCodes.Call, GetDecimalOperation(op.BinaryExpr.Operator.Class));
+                    EmitForExpression(nop.Left, il);
+                    EmitForExpression(nop.Right, il);
+                    il.Emit(OpCodes.Call, GetDecimalOperation(nop.BinaryExpr.Operator.Class));
                     break;
+                }
+            case BooleanOperationNode bop:
+                {
+                    EmitForExpression(bop.Left, il);
+
+                    if (bop.BinaryExpr.Operator.Class == TokenClass.AndOperator)
+                    {
+                        var refFalse = il.Create(OpCodes.Ldc_I4_0);
+                        var refNop = il.Create(OpCodes.Nop);
+
+                        il.Emit(OpCodes.Brfalse, refFalse);
+
+                        EmitForExpression(bop.Right, il);
+                        il.Emit(OpCodes.Br, refNop);
+
+                        il.Append(refFalse);
+                        il.Append(refNop);
+                        break;
+                    }
+
+                    if (bop.BinaryExpr.Operator.Class == TokenClass.OrOperator)
+                    {
+                        var refTrue = il.Create(OpCodes.Ldc_I4_1);
+                        var refNop = il.Create(OpCodes.Nop);
+
+                        il.Emit(OpCodes.Brtrue, refTrue);
+
+                        EmitForExpression(bop.Right, il);
+                        il.Emit(OpCodes.Br, refNop);
+
+                        il.Append(refTrue);
+                        il.Append(refNop);
+                        break;
+                    }
+
+                    throw new ArgumentOutOfRangeException("A boolean operation must either have a '&&' or a '||' operator");
                 }
             default:
                 throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");

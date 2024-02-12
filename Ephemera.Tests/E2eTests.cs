@@ -160,17 +160,25 @@ def result = {expression}
         }
 
         [Theory]
-        [InlineData("true && true", true)]
-        [InlineData("true && false", false)]
-        [InlineData("true || true", true)]
-        [InlineData("true || false", true)]
-        [InlineData("false && false", false)]
-        [InlineData("false && true", false)]
-        [InlineData("false || false", false)]
-        [InlineData("false || true", true)]
-        public async Task Boolean_Binary_Expressions_Work(string expression, bool expected)
+        [InlineData("true && true", true, false)]
+        [InlineData("true && true", true, true)]
+        [InlineData("true && false", false, false)]
+        [InlineData("true && false", false, true)]
+        [InlineData("true || true", true, false)]
+        [InlineData("true || true", true, true)]
+        [InlineData("true || false", true, false)]
+        [InlineData("true || false", true, true)]
+        [InlineData("false && false", false, false)]
+        [InlineData("false && false", false, true)]
+        [InlineData("false && true", false, false)]
+        [InlineData("false && true", false, true)]
+        [InlineData("false || false", false, false)]
+        [InlineData("false || false", false, true)]
+        [InlineData("false || true", true, false)]
+        [InlineData("false || true", true, true)]
+        public async Task Boolean_Binary_Expressions_Work(string expression, bool expected, bool il)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il);
             Assert.Equal(expected, actual);
         }
 

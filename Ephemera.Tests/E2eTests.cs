@@ -153,6 +153,7 @@ def result = {expression}
         [InlineData("-3.5", -3.5, false)]
         [InlineData("-3.5", -3.5, true)]
         //[InlineData("--3", 3)] TODO - should the double negation work?
+        //TODO these are probabaly parsed as just number literals, which means this is not an actual unary operation
         public async Task Number_Unary_Expressions_Work(string expression, decimal expected, bool il)
         {
             var actual = await TH.RunExpression(expression, il);
@@ -216,7 +217,10 @@ def result = {expression}
         [InlineData("5 > 4", true)]
         public async Task Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il: false);
+            Assert.Equal(expected, actual);
+
+            actual = await TH.RunExpression(expression, il: true);
             Assert.Equal(expected, actual);
         }
 
@@ -231,7 +235,10 @@ def result = {expression}
         [InlineData("3 < 4 > 3", true)]
         public async Task Triple_Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il: false);
+            Assert.Equal(expected, actual);
+
+            actual = await TH.RunExpression(expression, il: true);
             Assert.Equal(expected, actual);
         }
 
@@ -261,7 +268,10 @@ def result = {expression}
         [InlineData("5 > 4 > 3 > 2", true)]
         public async Task Quadruple_Comparison_Expressions_Work(string expression, bool expected)
         {
-            var actual = await TH.CompileExpression(expression);
+            var actual = await TH.RunExpression(expression, il: false);
+            Assert.Equal(expected, actual);
+
+            actual = await TH.RunExpression(expression, il: true);
             Assert.Equal(expected, actual);
         }
 

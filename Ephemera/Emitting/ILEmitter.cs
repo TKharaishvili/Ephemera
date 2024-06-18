@@ -28,6 +28,10 @@ public class ILEmitter
     private readonly MethodReference _divide;
     private readonly MethodReference _modulus;
     private readonly MethodReference _negate;
+    private readonly MethodReference _greaterThan;
+    private readonly MethodReference _greaterThanOrEqual;
+    private readonly MethodReference _lessThan;
+    private readonly MethodReference _lessThanOrEqual;
 
     public ILEmitter(string assemblyName, string className, string methodName)
     {
@@ -49,6 +53,11 @@ public class ILEmitter
         _modulus = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Remainder), [typeof(decimal), typeof(decimal)]));
         _negate = module.ImportReference(typeof(decimal).GetMethod(nameof(decimal.Negate), [typeof(decimal)]));
 
+        _greaterThan = module.ImportReference(typeof(decimal).GetMethod("op_GreaterThan"));
+        _greaterThanOrEqual = module.ImportReference(typeof(decimal).GetMethod("op_GreaterThanOrEqual"));
+        _lessThan = module.ImportReference(typeof(decimal).GetMethod("op_LessThan"));
+        _lessThanOrEqual = module.ImportReference(typeof(decimal).GetMethod("op_LessThanOrEqual"));
+
         _class = new TypeDefinition(assemblyName, className, TypeAttributes.Public | TypeAttributes.Class)
         {
             BaseType = module.ImportReference(typeof(object))
@@ -63,6 +72,8 @@ public class ILEmitter
         {
             var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, GetType(st));
             _class.Methods.Add(method);
+
+            method.Body.Variables.Add(new VariableDefinition(_decimalRef));
 
             var il = method.Body.GetILProcessor();
 
@@ -141,6 +152,43 @@ public class ILEmitter
                     il.Emit(OpCodes.Call, GetDecimalOperation(nop.BinaryExpr.Operator.Class));
                     break;
                 }
+            case NumberBooleanOperationNode nbop:
+                {
+                    EmitForExpression(nbop.Left, il);
+
+                    var op = nbop.BinaryExpr.Operator.Class;
+                    var right = nbop.Right;
+
+                    var falseValue = il.Create(OpCodes.Ldc_I4_0);
+                    var nop = il.Create(OpCodes.Nop);
+
+                    while (right is NumberBooleanOperationNode r)
+                    {
+                        EmitForExpression(r.Left, il);
+
+                        //duplicate the right value and store it in a local variable
+                        il.Emit(OpCodes.Dup);
+                        il.Emit(OpCodes.Stloc_0);
+
+                        il.Emit(OpCodes.Call, GetDecimalOperation(op));
+                        //if the result of the comparison is false, jump to the false value
+                        il.Emit(OpCodes.Brfalse, falseValue);
+
+                        il.Emit(OpCodes.Ldloc_0);
+
+                        op = r.BinaryExpr.Operator.Class;
+                        right = r.Right;
+                    }
+
+                    EmitForExpression(right, il);
+
+                    il.Emit(OpCodes.Call, GetDecimalOperation(op));
+                    il.Emit(OpCodes.Br, nop);
+
+                    il.Append(falseValue);
+                    il.Append(nop);
+                    break;
+                }
             case BooleanOperationNode bop:
                 {
                     EmitForExpression(bop.Left, il);
@@ -199,6 +247,10 @@ public class ILEmitter
             TokenClass.TimesOperator => _multiply,
             TokenClass.DivisionOperator => _divide,
             TokenClass.PercentOperator => _modulus,
+            TokenClass.GreaterOperator => _greaterThan,
+            TokenClass.GreaterOrEqualsOperator => _greaterThanOrEqual,
+            TokenClass.LessOperator => _lessThan,
+            TokenClass.LessOrEqualsOperator => _lessThanOrEqual,
             _ => throw new ArgumentOutOfRangeException(),
         };
     }

@@ -5,6 +5,7 @@ using Ephemera.SemanticAnalysis.Typing;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Assembly = System.Reflection.Assembly;
 
@@ -32,6 +33,8 @@ public class ILEmitter
     private readonly MethodReference _greaterThanOrEqual;
     private readonly MethodReference _lessThan;
     private readonly MethodReference _lessThanOrEqual;
+
+    private readonly Dictionary<string, MethodReference> _methods = [];
 
     public ILEmitter(string assemblyName, string className, string methodName)
     {
@@ -66,11 +69,23 @@ public class ILEmitter
         module.Types.Add(_class);
     }
 
-    public Assembly Emit(SemanticNode node)
+    public Assembly Emit(IReadOnlyList<SemanticNode> nodes)
     {
-        if (node is OperandNode op && op.TypeDescriptor is SimpleTypeDescriptor st)
+        foreach (SemanticNode node in nodes)
         {
-            var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, GetType(st));
+            Emit(node);
+        }
+
+        var ms = new MemoryStream();
+        _assembly.Write(ms);
+        return Assembly.Load(ms.GetBuffer());
+    }
+
+    private void Emit(SemanticNode node)
+    {
+        if (node is OperandNode op)
+        {
+            var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, GetType(op.TypeDescriptor));
             _class.Methods.Add(method);
 
             method.Body.Variables.Add(new VariableDefinition(_decimalRef));
@@ -81,10 +96,26 @@ public class ILEmitter
 
             il.Emit(OpCodes.Ret);
 
-            var ms = new MemoryStream();
-            _assembly.Write(ms);
-            return Assembly.Load(ms.GetBuffer());
+            return;
         }
+
+        if (node is FuncDefinitionNode funcDefinition)
+        {
+            var method = new MethodDefinition(funcDefinition.Name, MethodAttributes.Public | MethodAttributes.Static, GetType(funcDefinition.ReturnType));
+            _class.Methods.Add(method);
+
+            var il = method.Body.GetILProcessor();
+
+            foreach (var item in funcDefinition.Body.Children)
+            {
+                EmitForExpression(item, il);
+            }
+
+            _methods.Add(funcDefinition.Name, method);
+
+            return;
+        }
+
         throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
     }
 
@@ -225,6 +256,17 @@ public class ILEmitter
 
                     throw new ArgumentOutOfRangeException("A boolean operation must either have a '&&' or a '||' operator");
                 }
+            case ReturnNode rn:
+                {
+                    EmitForExpression(rn.Value, il);
+                    il.Emit(OpCodes.Ret);
+                    break;
+                }
+            case FuncInvocationNode fi:
+                {
+                    il.Emit(OpCodes.Call, _methods[fi.Name]);
+                    break;
+                }
             default:
                 throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
         }
@@ -253,6 +295,12 @@ public class ILEmitter
             TokenClass.LessOrEqualsOperator => _lessThanOrEqual,
             _ => throw new ArgumentOutOfRangeException(),
         };
+    }
+
+    private TypeReference GetType(TypeDescriptor td)
+    {
+        //TODO this needs to support all types
+        return GetType((SimpleTypeDescriptor)td);
     }
 
     private TypeReference GetType(SimpleTypeDescriptor st)

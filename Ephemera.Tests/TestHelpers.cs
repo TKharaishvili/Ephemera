@@ -13,19 +13,19 @@ namespace Ephemera.Tests
 {
     internal static class TestHelpers
     {
-        internal static Task<object> RunExpression(string expression, bool il)
+        internal static Task<object> RunExpression(string expression, bool il, string contextSrc = "")
         {
-            return il ? CompileExpressionToIL(expression) : CompileExpression(expression);
+            return il ? CompileExpressionToIL(expression, contextSrc) : CompileExpression(expression, contextSrc);
         }
 
-        internal static Task<object> CompileExpression(string expression)
+        internal static Task<object> CompileExpression(string expression, string contextSrc = "")
         {
-            return CompileCode($"def result = {expression}");
+            return CompileCode($"{contextSrc} \n def result = {expression}");
         }
 
-        internal static Task<object> CompileExpressionToIL(string expression)
+        internal static Task<object> CompileExpressionToIL(string expression, string contextSrc = "")
         {
-            var assembly = EmitIL(expression);
+            var assembly = EmitIL(contextSrc + "\n" + expression);
             var result = InvokeGeneratedMethod(assembly);
             return Task.FromResult(result);
         }
@@ -135,7 +135,7 @@ fun Four():number
             }
 
             var ilEmitter = new ILEmitter("Ephemera", "__GeneratedClass", "__GeneratedMethod");
-            return ilEmitter.Emit(nodes[0]);
+            return ilEmitter.Emit(nodes);
         }
 
         private static object InvokeGeneratedMethod(Assembly assembly)

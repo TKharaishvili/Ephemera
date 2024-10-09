@@ -36,64 +36,77 @@ namespace Ephemera.Transpilation
             return sb;
         }
 
-
-
         public string Transpile(IReadOnlyList<SemanticNode> nodes, bool generateTestingSource = false)
         {
             var code = TranspileInner(nodes);
 
             var sb = new StringBuilder();
-            sb.AppendLine("using System;")
-              .AppendLine("using System.Collections.Generic;")
-              .AppendLine()
-              .AppendLine("public class CustomList<T> : List<T> \n{ \n\t public int Size() => Count; \n\t public override string ToString() => \"[\" + string.Join(\", \", this) + \"]\"; \n}")
-              .AppendLine()
-              .AppendLine("public class Unit \n{ \n\t public static readonly Unit Self = new Unit(); \n\t public override string ToString() => \"Unit\"; \n}")
-              .AppendLine()
-              .AppendLine("static Unit _ExecuteWithUnit(Action a) { a(); return Unit.Self; } ")
-              .AppendLine()
-              .AppendLine("static decimal? _Divide(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x / y;")
-              .AppendLine()
-              .AppendLine("static decimal? _Percent(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x % y;")
-              .AppendLine()
-              .AppendLine("public static string AsString(this object obj) => obj?.ToString();")
-              .AppendLine()
-              .AppendLine("static decimal? ephemeralDecimal;")
-              .AppendLine();
+
+            sb.AppendLine("""
+using System;
+using System.Collections.Generic;
+
+public class CustomList<T> : List<T> 
+{ 
+	 public int Size() => Count; 
+	 public override string ToString() => "[" + string.Join(", ", this) + "]"; 
+}
+
+public class Unit 
+{ 
+	 public static readonly Unit Self = new Unit(); 
+	 public override string ToString() => "Unit"; 
+}
+
+static Unit _ExecuteWithUnit(Action a) 
+{ 
+    a(); 
+    return Unit.Self; 
+}
+
+static decimal? _Divide(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x / y;
+
+static decimal? _Percent(decimal? x, decimal? y) => y == 0 ? default(decimal?) : x % y;
+
+public static string AsString(this object obj) => obj?.ToString();
+
+static decimal? ephemeralDecimal;
+""");
 
             if (generateTestingSource)
             {
-                sb.AppendLine("static int trueCount = 0;")
-                  .AppendLine("static int falseCount = 0;")
-                  .AppendLine()
-                  .AppendLine("static bool True()")
-                  .AppendLine("{")
-                  .AppendLine("\ttrueCount++;")
-                  .AppendLine("\treturn true;")
-                  .AppendLine("}")
-                  .AppendLine()
-                  .AppendLine("static bool False()")
-                  .AppendLine("{")
-                  .AppendLine("\tfalseCount++;")
-                  .AppendLine("\treturn false;")
-                  .AppendLine("}")
-                  .AppendLine()
-                  .AppendLine("static int threeCount = 0;")
-                  .AppendLine()
-                  .AppendLine("static decimal Three()")
-                  .AppendLine("{")
-                  .AppendLine("\tthreeCount++;")
-                  .AppendLine("\treturn 3;")
-                  .AppendLine("}")
-                  .AppendLine()
-                  .AppendLine("static int fourCount = 0;")
-                  .AppendLine()
-                  .AppendLine("static decimal Four()")
-                  .AppendLine("{")
-                  .AppendLine("\tfourCount++;")
-                  .AppendLine("\treturn 4;")
-                  .AppendLine("}")
-                  .AppendLine();
+                sb.AppendLine("""
+static int trueCount = 0;
+static int falseCount = 0;
+
+static bool True()
+{
+    trueCount++;
+    return true;
+}
+                    
+static bool False()
+{
+    falseCount++;
+    return false;
+}
+
+static int threeCount = 0;
+
+static decimal Three()
+{
+    threeCount++;
+    return 3;
+}
+
+static int fourCount = 0;
+
+static decimal Four()
+{
+    fourCount++;
+    return 4;
+}
+""");
             }
 
             sb.AppendLine(code);

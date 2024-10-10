@@ -44,4 +44,20 @@ fun PureFunTwo()
         var actual = await TestHelpers.RunExpression(src, il, contextSrc);
         Assert.Equal(5m, actual);
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Function_Definition_With_Parameters_And_Invocation_Works(bool il)
+    {
+        var contextSrc = @"
+fun PureFun(x: number, y: number)
+{
+    return x + y
+}
+";
+        var src = "PureFun(1, 2)";
+        var actual = await TestHelpers.RunExpression(src, il, contextSrc);
+        Assert.Equal(3m, actual);
+    }
 }

@@ -35,6 +35,7 @@ public class ILEmitter
     private readonly MethodReference _lessThanOrEqual;
 
     private readonly Dictionary<string, MethodReference> _methods = [];
+    private readonly Dictionary<DefinitionNode, (ParameterDefinition Param, VariableDefinition Var)> _currentMethodSymbols = [];
 
     public ILEmitter(string assemblyName, string className, string methodName)
     {
@@ -104,6 +105,13 @@ public class ILEmitter
             var method = new MethodDefinition(funcDefinition.Name, MethodAttributes.Public | MethodAttributes.Static, GetType(funcDefinition.ReturnType));
             _class.Methods.Add(method);
 
+            for (int i = 0; i < funcDefinition.Params.Count; i++)
+            {
+                var param = funcDefinition.Params[i];
+                method.Parameters.Add(new ParameterDefinition(param.Name, ParameterAttributes.None, GetType(param.Type)));
+                _currentMethodSymbols.Add(param, (method.Parameters[i], null));
+            }
+
             var il = method.Body.GetILProcessor();
 
             foreach (var item in funcDefinition.Body.Children)
@@ -113,6 +121,7 @@ public class ILEmitter
 
             _methods.Add(funcDefinition.Name, method);
 
+            _currentMethodSymbols.Clear();
             return;
         }
 
@@ -264,8 +273,30 @@ public class ILEmitter
                 }
             case FuncInvocationNode fi:
                 {
+                    foreach (var arg in fi.Params)
+                    {
+                        EmitForExpression(arg, il);
+                    }
+
                     il.Emit(OpCodes.Call, _methods[fi.Name]);
                     break;
+                }
+            case IdentifierNode i:
+                {
+                    var (p, v) = _currentMethodSymbols[i.Definition];
+                    if (p != null)
+                    {
+                        il.Emit(OpCodes.Ldarg, p);
+                        break;
+                    }
+
+                    if (v != null)
+                    {
+                        il.Emit(OpCodes.Ldloc, v);
+                        break;
+                    }
+
+                    throw new ArgumentOutOfRangeException("An identifier must either be a parameter or a variable");
                 }
             default:
                 throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");

@@ -10,7 +10,7 @@ public class FunctionE2eTests
     [InlineData("0", 0, true)]
     [InlineData("3 + 4", 7, false)]
     [InlineData("3 + 4", 7, true)]
-    public async Task Function_Definition_And_Invocation_Work(string returnExpr, double expected, bool il)
+    public async Task Defining_And_Invoking_A_Function_Works(string returnExpr, double expected, bool il)
     {
         var contextSrc = @$"
 fun PureFun()
@@ -48,7 +48,7 @@ fun PureFunTwo()
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Function_Definition_With_Parameters_And_Invocation_Works(bool il)
+    public async Task Defining_And_Invoking_A_Function_With_Params_Works(bool il)
     {
         var contextSrc = @"
 fun PureFun(x: number, y: number)

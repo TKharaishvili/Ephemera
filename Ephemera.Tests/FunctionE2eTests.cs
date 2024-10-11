@@ -48,7 +48,23 @@ fun PureFunTwo()
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task Defining_And_Invoking_A_Function_With_Params_Works(bool il)
+    public async Task Defining_And_Invoking_A_Function_With_1_Param_Works(bool il)
+    {
+        var contextSrc = @"
+fun PureFun(x: number)
+{
+    return x * 2
+}
+";
+        var src = "PureFun(2)";
+        var actual = await TestHelpers.RunExpression(src, il, contextSrc);
+        Assert.Equal(4m, actual);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Defining_And_Invoking_A_Function_With_2_Params_Works(bool il)
     {
         var contextSrc = @"
 fun PureFun(x: number, y: number)
@@ -59,5 +75,21 @@ fun PureFun(x: number, y: number)
         var src = "PureFun(1, 2)";
         var actual = await TestHelpers.RunExpression(src, il, contextSrc);
         Assert.Equal(3m, actual);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Defining_And_Invoking_A_Function_With_3_Params_Works(bool il)
+    {
+        var contextSrc = @"
+fun PureFun(x: number, y: number, z: number)
+{
+    return x + y * z
+}
+";
+        var src = "PureFun(1, 2, 3)";
+        var actual = await TestHelpers.RunExpression(src, il, contextSrc);
+        Assert.Equal(7m, actual);
     }
 }

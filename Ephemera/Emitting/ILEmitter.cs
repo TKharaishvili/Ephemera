@@ -1,5 +1,6 @@
 ﻿using Ephemera.Lexing;
 using Ephemera.Parsing;
+using Ephemera.Parsing.Expressions;
 using Ephemera.SemanticAnalysis.Nodes;
 using Ephemera.SemanticAnalysis.Typing;
 using Mono.Cecil;
@@ -7,6 +8,7 @@ using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Assembly = System.Reflection.Assembly;
 
 namespace Ephemera.Emitting;
@@ -35,7 +37,6 @@ public class ILEmitter
     private readonly MethodReference _lessThanOrEqual;
 
     private readonly Dictionary<string, MethodReference> _methods = [];
-    private readonly Dictionary<DefinitionNode, (ParameterDefinition Param, VariableDefinition Var)> _currentMethodSymbols = [];
 
     public ILEmitter(string assemblyName, string className, string methodName)
     {
@@ -72,234 +73,237 @@ public class ILEmitter
 
     public Assembly Emit(IReadOnlyList<SemanticNode> nodes)
     {
-        foreach (SemanticNode node in nodes)
+        var newNodes = new List<SemanticNode>(nodes);
+        var lastOperand = nodes.Last() as OperandNode;
+        if (lastOperand != null)
         {
-            Emit(node);
+            newNodes[newNodes.Count - 1] = new ReturnNode(new Expr(), lastOperand.TypeDescriptor, lastOperand);
         }
+
+        var returnType = lastOperand?.TypeDescriptor ?? new SimpleTypeDescriptor(SimpleType.Unit);
+        EmitFuncDefinition(_methodName, [], returnType, newNodes);
 
         var ms = new MemoryStream();
         _assembly.Write(ms);
         return Assembly.Load(ms.GetBuffer());
     }
 
-    private void Emit(SemanticNode node)
+    private void EmitFuncDefinition(string name, IReadOnlyList<DefinitionNode> @params, TypeDescriptor returnType, IReadOnlyList<SemanticNode> statements)
     {
-        if (node is OperandNode op)
+        var method = new MethodDefinition(name, MethodAttributes.Public | MethodAttributes.Static, GetType(returnType));
+        var methodSymbols = new Dictionary<DefinitionNode, (ParameterDefinition Param, VariableDefinition Var)>();
+        _class.Methods.Add(method);
+        _methods.Add(name, method);
+
+        method.Body.Variables.Add(new VariableDefinition(_decimalRef));
+
+        for (int i = 0; i < @params.Count; i++)
         {
-            var method = new MethodDefinition(_methodName, MethodAttributes.Public | MethodAttributes.Static, GetType(op.TypeDescriptor));
-            _class.Methods.Add(method);
-
-            method.Body.Variables.Add(new VariableDefinition(_decimalRef));
-
-            var il = method.Body.GetILProcessor();
-
-            EmitForExpression(node, il);
-
-            il.Emit(OpCodes.Ret);
-
-            return;
+            var param = @params[i];
+            method.Parameters.Add(new ParameterDefinition(param.Name, ParameterAttributes.None, GetType(param.Type)));
+            methodSymbols.Add(param, (method.Parameters[i], null));
         }
 
-        if (node is FuncDefinitionNode funcDefinition)
+        var il = method.Body.GetILProcessor();
+
+        foreach (var statement in statements)
         {
-            var method = new MethodDefinition(funcDefinition.Name, MethodAttributes.Public | MethodAttributes.Static, GetType(funcDefinition.ReturnType));
-            _class.Methods.Add(method);
-
-            for (int i = 0; i < funcDefinition.Params.Count; i++)
-            {
-                var param = funcDefinition.Params[i];
-                method.Parameters.Add(new ParameterDefinition(param.Name, ParameterAttributes.None, GetType(param.Type)));
-                _currentMethodSymbols.Add(param, (method.Parameters[i], null));
-            }
-
-            var il = method.Body.GetILProcessor();
-
-            foreach (var item in funcDefinition.Body.Children)
-            {
-                EmitForExpression(item, il);
-            }
-
-            _methods.Add(funcDefinition.Name, method);
-
-            _currentMethodSymbols.Clear();
-            return;
+            Emit(statement, il, method, methodSymbols);
         }
-
-        throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
     }
 
-    private void EmitForExpression(SemanticNode node, ILProcessor il)
+    private void Emit(SemanticNode node, ILProcessor il, MethodDefinition method, Dictionary<DefinitionNode, (ParameterDefinition Param, VariableDefinition Var)> methodSymbols)
     {
-        switch (node)
+        EmitInner(node);
+
+        void EmitInner(SemanticNode node)
         {
-            case NumberLiteralNode n:
-                {
-                    var d = decimal.Parse(n.Literal.Token.Word);
-                    var parts = DecomposeDecimal(d);
-
-                    il.Emit(OpCodes.Ldc_I4, parts.Low);
-                    il.Emit(OpCodes.Ldc_I4, parts.Mid);
-                    il.Emit(OpCodes.Ldc_I4, parts.High);
-                    il.Emit(OpCodes.Ldc_I4, parts.IsNegative ? 1 : 0);
-                    il.Emit(OpCodes.Ldc_I4, (int)parts.Scale);
-                    il.Emit(OpCodes.Newobj, _decimalCtor);
-                    break;
-                }
-            case BooleanLiteralNode b:
-                {
-                    if (b.Literal.Token.Class == TokenClass.TrueKeyword)
+            switch (node)
+            {
+                case NumberLiteralNode n:
                     {
-                        il.Emit(OpCodes.Ldc_I4_1);
+                        var d = decimal.Parse(n.Literal.Token.Word);
+                        var parts = DecomposeDecimal(d);
+
+                        il.Emit(OpCodes.Ldc_I4, parts.Low);
+                        il.Emit(OpCodes.Ldc_I4, parts.Mid);
+                        il.Emit(OpCodes.Ldc_I4, parts.High);
+                        il.Emit(OpCodes.Ldc_I4, parts.IsNegative ? 1 : 0);
+                        il.Emit(OpCodes.Ldc_I4, (int)parts.Scale);
+                        il.Emit(OpCodes.Newobj, _decimalCtor);
                         break;
                     }
-
-                    if (b.Literal.Token.Class == TokenClass.FalseKeyword)
+                case BooleanLiteralNode b:
                     {
-                        il.Emit(OpCodes.Ldc_I4_0);
+                        if (b.Literal.Token.Class == TokenClass.TrueKeyword)
+                        {
+                            il.Emit(OpCodes.Ldc_I4_1);
+                            break;
+                        }
+
+                        if (b.Literal.Token.Class == TokenClass.FalseKeyword)
+                        {
+                            il.Emit(OpCodes.Ldc_I4_0);
+                            break;
+                        }
+
+                        throw new ArgumentOutOfRangeException("Boolean literal must either be true or false");
+                    }
+                case StringLiteralNode s:
+                    {
+                        il.Emit(OpCodes.Ldstr, s.Literal.Token.Word.Trim('"'));
                         break;
                     }
-
-                    throw new ArgumentOutOfRangeException("Boolean literal must either be true or false");
-                }
-            case StringLiteralNode s:
-                {
-                    il.Emit(OpCodes.Ldstr, s.Literal.Token.Word.Trim('"'));
-                    break;
-                }
-            case UnaryOperationNode u:
-                {
-                    EmitForExpression(u.Operand, il);
-
-                    if (u.Operator.Class == TokenClass.MinusOperator)
+                case UnaryOperationNode u:
                     {
-                        il.Emit(OpCodes.Call, _negate);
+                        EmitInner(u.Operand);
+
+                        if (u.Operator.Class == TokenClass.MinusOperator)
+                        {
+                            il.Emit(OpCodes.Call, _negate);
+                            break;
+                        }
+
+                        if (u.Operator.Class == TokenClass.NegationOperator)
+                        {
+                            il.Emit(OpCodes.Ldc_I4_0);
+                            il.Emit(OpCodes.Ceq);
+                            break;
+                        }
+
+                        throw new ArgumentOutOfRangeException("A unary operation must either have a '-' or a '!' operator");
+                    }
+                case NumberOperationNode nop:
+                    {
+                        EmitInner(nop.Left);
+                        EmitInner(nop.Right);
+                        il.Emit(OpCodes.Call, GetDecimalOperation(nop.BinaryExpr.Operator.Class));
                         break;
                     }
-
-                    if (u.Operator.Class == TokenClass.NegationOperator)
+                case NumberBooleanOperationNode nbop:
                     {
-                        il.Emit(OpCodes.Ldc_I4_0);
-                        il.Emit(OpCodes.Ceq);
-                        break;
-                    }
+                        EmitInner(nbop.Left);
 
-                    throw new ArgumentOutOfRangeException("A unary operation must either have a '-' or a '!' operator");
-                }
-            case NumberOperationNode nop:
-                {
-                    EmitForExpression(nop.Left, il);
-                    EmitForExpression(nop.Right, il);
-                    il.Emit(OpCodes.Call, GetDecimalOperation(nop.BinaryExpr.Operator.Class));
-                    break;
-                }
-            case NumberBooleanOperationNode nbop:
-                {
-                    EmitForExpression(nbop.Left, il);
+                        var op = nbop.BinaryExpr.Operator.Class;
+                        var right = nbop.Right;
 
-                    var op = nbop.BinaryExpr.Operator.Class;
-                    var right = nbop.Right;
+                        var falseValue = il.Create(OpCodes.Ldc_I4_0);
+                        var nop = il.Create(OpCodes.Nop);
 
-                    var falseValue = il.Create(OpCodes.Ldc_I4_0);
-                    var nop = il.Create(OpCodes.Nop);
+                        while (right is NumberBooleanOperationNode r)
+                        {
+                            EmitInner(r.Left);
 
-                    while (right is NumberBooleanOperationNode r)
-                    {
-                        EmitForExpression(r.Left, il);
+                            //duplicate the right value and store it in a local variable
+                            il.Emit(OpCodes.Dup);
+                            il.Emit(OpCodes.Stloc_0);
 
-                        //duplicate the right value and store it in a local variable
-                        il.Emit(OpCodes.Dup);
-                        il.Emit(OpCodes.Stloc_0);
+                            il.Emit(OpCodes.Call, GetDecimalOperation(op));
+                            //if the result of the comparison is false, jump to the false value
+                            il.Emit(OpCodes.Brfalse, falseValue);
+
+                            il.Emit(OpCodes.Ldloc_0);
+
+                            op = r.BinaryExpr.Operator.Class;
+                            right = r.Right;
+                        }
+
+                        EmitInner(right);
 
                         il.Emit(OpCodes.Call, GetDecimalOperation(op));
-                        //if the result of the comparison is false, jump to the false value
-                        il.Emit(OpCodes.Brfalse, falseValue);
+                        il.Emit(OpCodes.Br, nop);
 
-                        il.Emit(OpCodes.Ldloc_0);
-
-                        op = r.BinaryExpr.Operator.Class;
-                        right = r.Right;
-                    }
-
-                    EmitForExpression(right, il);
-
-                    il.Emit(OpCodes.Call, GetDecimalOperation(op));
-                    il.Emit(OpCodes.Br, nop);
-
-                    il.Append(falseValue);
-                    il.Append(nop);
-                    break;
-                }
-            case BooleanOperationNode bop:
-                {
-                    EmitForExpression(bop.Left, il);
-
-                    if (bop.BinaryExpr.Operator.Class == TokenClass.AndOperator)
-                    {
-                        var refFalse = il.Create(OpCodes.Ldc_I4_0);
-                        var refNop = il.Create(OpCodes.Nop);
-
-                        il.Emit(OpCodes.Brfalse, refFalse);
-
-                        EmitForExpression(bop.Right, il);
-                        il.Emit(OpCodes.Br, refNop);
-
-                        il.Append(refFalse);
-                        il.Append(refNop);
+                        il.Append(falseValue);
+                        il.Append(nop);
                         break;
                     }
-
-                    if (bop.BinaryExpr.Operator.Class == TokenClass.OrOperator)
+                case BooleanOperationNode bop:
                     {
-                        var refTrue = il.Create(OpCodes.Ldc_I4_1);
-                        var refNop = il.Create(OpCodes.Nop);
+                        EmitInner(bop.Left);
 
-                        il.Emit(OpCodes.Brtrue, refTrue);
+                        if (bop.BinaryExpr.Operator.Class == TokenClass.AndOperator)
+                        {
+                            var refFalse = il.Create(OpCodes.Ldc_I4_0);
+                            var refNop = il.Create(OpCodes.Nop);
 
-                        EmitForExpression(bop.Right, il);
-                        il.Emit(OpCodes.Br, refNop);
+                            il.Emit(OpCodes.Brfalse, refFalse);
 
-                        il.Append(refTrue);
-                        il.Append(refNop);
+                            EmitInner(bop.Right);
+                            il.Emit(OpCodes.Br, refNop);
+
+                            il.Append(refFalse);
+                            il.Append(refNop);
+                            break;
+                        }
+
+                        if (bop.BinaryExpr.Operator.Class == TokenClass.OrOperator)
+                        {
+                            var refTrue = il.Create(OpCodes.Ldc_I4_1);
+                            var refNop = il.Create(OpCodes.Nop);
+
+                            il.Emit(OpCodes.Brtrue, refTrue);
+
+                            EmitInner(bop.Right);
+                            il.Emit(OpCodes.Br, refNop);
+
+                            il.Append(refTrue);
+                            il.Append(refNop);
+                            break;
+                        }
+
+                        throw new ArgumentOutOfRangeException("A boolean operation must either have a '&&' or a '||' operator");
+                    }
+                case ReturnNode rn:
+                    {
+                        EmitInner(rn.Value);
+                        il.Emit(OpCodes.Ret);
                         break;
                     }
-
-                    throw new ArgumentOutOfRangeException("A boolean operation must either have a '&&' or a '||' operator");
-                }
-            case ReturnNode rn:
-                {
-                    EmitForExpression(rn.Value, il);
-                    il.Emit(OpCodes.Ret);
-                    break;
-                }
-            case FuncInvocationNode fi:
-                {
-                    foreach (var arg in fi.Params)
+                case FuncDefinitionNode fd:
                     {
-                        EmitForExpression(arg, il);
-                    }
-
-                    il.Emit(OpCodes.Call, _methods[fi.Name]);
-                    break;
-                }
-            case IdentifierNode i:
-                {
-                    var (p, v) = _currentMethodSymbols[i.Definition];
-                    if (p != null)
-                    {
-                        il.Emit(OpCodes.Ldarg, p);
+                        EmitFuncDefinition(fd.Name, fd.Params, fd.ReturnType, fd.Body.Children);
                         break;
                     }
-
-                    if (v != null)
+                case FuncInvocationNode fi:
                     {
-                        il.Emit(OpCodes.Ldloc, v);
+                        foreach (var arg in fi.Params)
+                        {
+                            EmitInner(arg);
+                        }
+
+                        il.Emit(OpCodes.Call, _methods[fi.Name]);
                         break;
                     }
+                case IdentifierNode i:
+                    {
+                        var (p, v) = methodSymbols[i.Definition];
+                        if (p != null)
+                        {
+                            il.Emit(OpCodes.Ldarg, p);
+                            break;
+                        }
 
-                    throw new ArgumentOutOfRangeException("An identifier must either be a parameter or a variable");
-                }
-            default:
-                throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
+                        if (v != null)
+                        {
+                            il.Emit(OpCodes.Ldloc, v);
+                            break;
+                        }
+
+                        throw new ArgumentOutOfRangeException("An identifier must either be a parameter or a variable");
+                    }
+                case VariableDefinitionNode vd:
+                    {
+                        var v = new VariableDefinition(GetType(vd.Type));
+                        method.Body.Variables.Add(v);
+                        methodSymbols.Add(vd, (Param: null, Var: v));
+
+                        EmitInner(vd.Source);
+                        il.Emit(OpCodes.Stloc, v);
+                        break;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException($"Can't compile an expression of type {node.GetType().FullName}");
+            }
         }
     }
 

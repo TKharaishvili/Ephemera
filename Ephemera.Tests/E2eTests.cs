@@ -291,5 +291,17 @@ def result = {expression}
             Assert.Equal(expectedFourCount, actualFourCount);
             Assert.Equal(expectedResult, actualResult);
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Defining_And_Refering_To_A_Variable_Works(bool il)
+        {
+            var contextSrc = "def a = 10";
+            var src = "a * 2";
+            var actual = await TH.RunExpression(src, il, contextSrc);
+            Assert.Equal(20m, actual);
+        }
+        //TODO - scoping tests should follow
     }
 }

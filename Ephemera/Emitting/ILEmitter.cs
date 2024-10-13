@@ -95,6 +95,9 @@ public class ILEmitter
         _class.Methods.Add(method);
         _methods.Add(name, method);
 
+        // Expressions like x < y < z need to store an intermediate number value somewhere and
+        // that's what this variable is for. Only functions that use such expressions would need it
+        // but my focus is not on optimisation at the moment so I'm declaring it in every function
         method.Body.Variables.Add(new VariableDefinition(_decimalRef));
 
         for (int i = 0; i < @params.Count; i++)

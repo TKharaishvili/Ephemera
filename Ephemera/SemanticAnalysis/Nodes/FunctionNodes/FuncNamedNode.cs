@@ -5,21 +5,8 @@ using Ephemera.Lexing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class FuncNamedNode : SemanticNode
+    public record FuncNamedNode(Expr Expr, Token Identifier, IReadOnlyList<DefinitionNode> Params, TypeDescriptor ReturnType, bool IsExtension) : SemanticNode(Expr)
     {
-        public Token Identifier { get; }
         public string Name => Identifier.Word;
-        public IReadOnlyList<DefinitionNode> Params { get; }
-        public TypeDescriptor ReturnType { get; }
-        public bool IsExtension { get; }
-
-        public FuncNamedNode(Expr expr, Token identifier, IReadOnlyList<DefinitionNode> @params, TypeDescriptor returnType, bool isExtension)
-            : base(expr)
-        {
-            Identifier = identifier;
-            Params = @params;
-            ReturnType = returnType;
-            IsExtension = isExtension;
-        }
     }
 }

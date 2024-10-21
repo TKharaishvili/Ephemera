@@ -5,40 +5,14 @@ namespace Ephemera.SemanticAnalysis.Nodes
 {
     //todo do I really need three literal classes for all types
     //don't think so....
-    public class BooleanLiteralNode : OperandNode
+    public record BooleanLiteralNode(LiteralExpr Literal) : OperandNode(Literal, SimpleTypeDescriptor.Bool)
     {
-        public LiteralExpr Literal { get; }
-
-        public BooleanLiteralNode(LiteralExpr expr) : base(expr, SimpleTypeDescriptor.Bool)
-        {
-            Literal = expr;
-        }
-
         public override string ToString() => Expr.ToString();
     }
 
     //ToDo can I combine BooleanOperationNode, NumberBooleanOperationNode and NumberOperationNode In one class?
     //I mean why not?
-    public class BooleanOperationNode : OperandNode
-    {
-        public BinaryOperationExpr BinaryExpr { get; }
-        public OperandNode Left { get; }
-        public OperandNode Right { get; }
+    public record BooleanOperationNode(BinaryOperationExpr BinaryExpr, OperandNode Left, OperandNode Right, TypeDescriptor TypeDescriptor) : OperandNode(BinaryExpr, TypeDescriptor);
 
-        public BooleanOperationNode(BinaryOperationExpr expr, OperandNode left, OperandNode right, TypeDescriptor typeDescriptor)
-            : base(expr, typeDescriptor)
-        {
-            BinaryExpr = expr;
-            Left = left;
-            Right = right;
-        }
-    }
-
-    public class NumberBooleanOperationNode : BooleanOperationNode
-    {
-        public NumberBooleanOperationNode(BinaryOperationExpr expr, OperandNode left, OperandNode right, TypeDescriptor typeDescriptor)
-            : base(expr, left, right, typeDescriptor)
-        {
-        }
-    }
+    public record NumberBooleanOperationNode(BinaryOperationExpr BinaryExpr, OperandNode Left, OperandNode Right, TypeDescriptor TypeDescriptor) : BooleanOperationNode(BinaryExpr, Left, Right, TypeDescriptor);
 }

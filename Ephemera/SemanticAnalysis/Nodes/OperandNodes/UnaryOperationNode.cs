@@ -4,16 +4,8 @@ using Ephemera.SemanticAnalysis.Typing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class UnaryOperationNode : OperandNode
+    public record UnaryOperationNode(UnaryOperationExpr UnaryOperationExpr, OperandNode Operand, TypeDescriptor TypeDescriptor) : OperandNode(UnaryOperationExpr, TypeDescriptor)
     {
-        public Token Operator { get; }
-        public OperandNode Operand { get; }
-
-        public UnaryOperationNode(UnaryOperationExpr expr, OperandNode operand, TypeDescriptor typeDescriptor)
-            : base(expr, typeDescriptor)
-        {
-            Operator = expr.Operator;
-            Operand = operand;
-        }
+        public Token Operator { get; } = UnaryOperationExpr.Operator;
     }
 }

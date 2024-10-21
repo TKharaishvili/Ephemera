@@ -3,16 +3,5 @@ using Ephemera.SemanticAnalysis.Typing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class QuestionQuestionOperationNode : OperandNode
-    {
-        public OperandNode Left { get; }
-        public OperandNode Right { get; }
-
-        public QuestionQuestionOperationNode(Expr expr, TypeDescriptor type, OperandNode left, OperandNode right)
-            : base(expr, type)
-        {
-            Left = left;
-            Right = right;
-        }
-    }
+    public record QuestionQuestionOperationNode(Expr Expr, TypeDescriptor TypeDescriptor, OperandNode Left, OperandNode Right) : OperandNode(Expr, TypeDescriptor);
 }

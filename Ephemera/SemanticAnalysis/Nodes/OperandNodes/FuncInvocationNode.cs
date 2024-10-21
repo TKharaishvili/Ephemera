@@ -4,29 +4,20 @@ using Ephemera.SemanticAnalysis.Typing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class FuncInvocationNode : OperandNode
+    public record FuncInvocationNode(FuncInvocationExpr FuncInvocationExpr, TypeDescriptor TypeDescriptor, IReadOnlyList<OperandNode> Params, OperandNode PreParam, bool IsConditionalInvocation, FuncNamedNode NamedFunc = null) : OperandNode(FuncInvocationExpr, TypeDescriptor)
     {
-        public string Name { get; }
-        public IReadOnlyList<OperandNode> Params { get; }
-        public OperandNode PreParam { get; }
-        public bool IsConditionalInvocation { get; }
-        public FuncNamedNode NamedFunc { get; }
-        public bool HasConditionalInvocation { get; }
-        public FuncInvocationExpr FuncInvocationExpr { get; }
+        public string Name { get; } = FuncInvocationExpr.Identifier.Word;
 
-        public FuncInvocationNode(FuncInvocationExpr expr, TypeDescriptor typeDescriptor, IReadOnlyList<OperandNode> @params, OperandNode preParam, bool isConditionalInvocation, FuncNamedNode namedFunc = null)
-            : base(expr, typeDescriptor)
+        //TODO: the implementation of this prop was changed without testing
+        //do make sure the previous and current implementations work the same
+        //preferrably with a unit test
+        public bool HasConditionalInvocation
         {
-            Name = expr.Identifier.Word;
-            Params = @params;
-            PreParam = preParam;
-            IsConditionalInvocation = isConditionalInvocation;
-            NamedFunc = namedFunc;
-
-            var invocation = preParam as FuncInvocationNode;
-            HasConditionalInvocation = isConditionalInvocation || invocation?.HasConditionalInvocation == true;
-
-            FuncInvocationExpr = expr;
+            get
+            {
+                return IsConditionalInvocation ||
+                    PreParam is FuncInvocationNode { HasConditionalInvocation: true };
+            }
         }
 
         public FuncInvocationNode With(TypeDescriptor typeDescriptor)

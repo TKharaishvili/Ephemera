@@ -3,28 +3,7 @@ using Ephemera.SemanticAnalysis.Typing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class NumberLiteralNode : OperandNode
-    {
-        public LiteralExpr Literal { get; }
+    public record NumberLiteralNode(LiteralExpr Literal) : OperandNode(Literal, SimpleTypeDescriptor.Number);
 
-        public NumberLiteralNode(LiteralExpr literal) : base(literal, SimpleTypeDescriptor.Number)
-        {
-            Literal = literal;
-        }
-    }
-
-    public class NumberOperationNode : OperandNode
-    {
-        public BinaryOperationExpr BinaryExpr { get; }
-        public OperandNode Left { get; }
-        public OperandNode Right { get; }
-
-        public NumberOperationNode(BinaryOperationExpr expr, OperandNode left, OperandNode right, TypeDescriptor typeDescriptor)
-            : base(expr, typeDescriptor)
-        {
-            BinaryExpr = expr;
-            Left = left;
-            Right = right;
-        }
-    }
+    public record NumberOperationNode(BinaryOperationExpr BinaryExpr, OperandNode Left, OperandNode Right, TypeDescriptor TypeDescriptor) : OperandNode(BinaryExpr, TypeDescriptor);
 }

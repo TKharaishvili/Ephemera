@@ -4,16 +4,8 @@ using Ephemera.Lexing;
 
 namespace Ephemera.SemanticAnalysis.Nodes
 {
-    public class DefinitionNode : SemanticNode
+    public record DefinitionNode(Expr Expr, Token Identifier, TypeDescriptor Type) : SemanticNode(Expr)
     {
-        public Token Identifier { get; }
-        public TypeDescriptor Type { get; }
         public string Name => Identifier.Lexeme.Word;
-
-        public DefinitionNode(Expr expr, Token identifier, TypeDescriptor type) : base(expr)
-        {
-            Identifier = identifier;
-            Type = type;
-        }
     }
 }

@@ -1,7 +1,7 @@
 ﻿using Ephemera.Lexing;
 using Ephemera.Parsing;
 using Ephemera.Reusable;
-using Ephemera.SemanticAnalysis.Nodes;
+using Ephemera.SemanticAnalysis;
 using Ephemera.SemanticAnalysis.Typing;
 using System;
 using System.Collections.Generic;

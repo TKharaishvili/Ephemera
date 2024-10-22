@@ -1,7 +1,7 @@
 ﻿using Ephemera.Lexing;
 using Ephemera.Parsing;
 using Ephemera.Parsing.Expressions;
-using Ephemera.SemanticAnalysis.Nodes;
+using Ephemera.SemanticAnalysis;
 using Ephemera.SemanticAnalysis.Typing;
 using Mono.Cecil;
 using Mono.Cecil.Cil;

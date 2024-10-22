@@ -2,7 +2,6 @@
 using Ephemera.Parsing;
 using Ephemera.Parsing.Expressions;
 using Ephemera.Reusable;
-using Ephemera.SemanticAnalysis.Nodes;
 using Ephemera.SemanticAnalysis.Typing;
 using System.Collections.Generic;
 using System.Collections.Immutable;

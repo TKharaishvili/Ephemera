@@ -1,12 +1,11 @@
-﻿namespace Ephemera.SemanticAnalysis.Typing
-{
-    public class TypeParamDescriptor : TypeDescriptor
-    {
-        public string Name { get; }
+﻿namespace Ephemera.SemanticAnalysis.Typing;
 
-        public TypeParamDescriptor(string name)
-        {
-            Name = name;
-        }
+public class TypeParamDescriptor : TypeDescriptor
+{
+    public string Name { get; }
+
+    public TypeParamDescriptor(string name)
+    {
+        Name = name;
     }
 }

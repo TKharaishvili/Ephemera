@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 
-namespace Ephemera.Parsing.Expressions
-{
-    public class FuncDefinitionBaseExpr : Expr
-    {
-        public IReadOnlyList<ParamDeclarationExpr> Parameters { get; }
-        public TypeExpr ReturnType { get; }
+namespace Ephemera.Parsing.Expressions;
 
-        protected FuncDefinitionBaseExpr(FuncSignatureExpr signature)
-        {
-            Parameters = signature.Parameters;
-            ReturnType = signature.ReturnType;
-        }
+public class FuncDefinitionBaseExpr : Expr
+{
+    public IReadOnlyList<ParamDeclarationExpr> Parameters { get; }
+    public TypeExpr ReturnType { get; }
+
+    protected FuncDefinitionBaseExpr(FuncSignatureExpr signature)
+    {
+        Parameters = signature.Parameters;
+        ReturnType = signature.ReturnType;
     }
 }

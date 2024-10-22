@@ -1,13 +1,12 @@
-﻿namespace Ephemera.SemanticAnalysis.Typing
+﻿namespace Ephemera.SemanticAnalysis.Typing;
+
+public class NullTypeDescriptor : TypeDescriptor
 {
-    public class NullTypeDescriptor : TypeDescriptor
+    private NullTypeDescriptor() : base(true)
     {
-        private NullTypeDescriptor() : base(true)
-        {
-        }
-
-        public static readonly NullTypeDescriptor Null = new NullTypeDescriptor();
-
-        public override string ToString() => "null";
     }
+
+    public static readonly NullTypeDescriptor Null = new NullTypeDescriptor();
+
+    public override string ToString() => "null";
 }

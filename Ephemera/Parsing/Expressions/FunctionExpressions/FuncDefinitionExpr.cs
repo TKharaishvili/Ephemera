@@ -1,13 +1,12 @@
-﻿namespace Ephemera.Parsing.Expressions
-{
-    public class FuncDefinitionExpr : FuncNamedExpr
-    {
-        public BlockExpr Body { get; }
+﻿namespace Ephemera.Parsing.Expressions;
 
-        public FuncDefinitionExpr(FuncSignatureExpr signature, BlockExpr body)
-            : base(signature)
-        {
-            Body = body;
-        }
+public class FuncDefinitionExpr : FuncNamedExpr
+{
+    public BlockExpr Body { get; }
+
+    public FuncDefinitionExpr(FuncSignatureExpr signature, BlockExpr body)
+        : base(signature)
+    {
+        Body = body;
     }
 }

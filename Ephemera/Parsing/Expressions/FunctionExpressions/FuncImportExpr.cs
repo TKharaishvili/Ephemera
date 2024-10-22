@@ -1,13 +1,12 @@
-﻿namespace Ephemera.Parsing.Expressions
-{
-    public class FuncImportExpr : FuncNamedExpr
-    {
-        public string ImportedFuncName { get; }
+﻿namespace Ephemera.Parsing.Expressions;
 
-        public FuncImportExpr(FuncSignatureExpr signature, string importedFuncName)
-            : base(signature)
-        {
-            ImportedFuncName = importedFuncName;
-        }
+public class FuncImportExpr : FuncNamedExpr
+{
+    public string ImportedFuncName { get; }
+
+    public FuncImportExpr(FuncSignatureExpr signature, string importedFuncName)
+        : base(signature)
+    {
+        ImportedFuncName = importedFuncName;
     }
 }

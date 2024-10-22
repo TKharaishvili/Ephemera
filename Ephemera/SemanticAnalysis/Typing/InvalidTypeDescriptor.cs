@@ -1,10 +1,9 @@
-﻿namespace Ephemera.SemanticAnalysis.Typing
-{
-    public class InvalidTypeDescriptor : TypeDescriptor
-    {
-        public InvalidTypeDescriptor() { }
-        public static readonly InvalidTypeDescriptor Invalid = new InvalidTypeDescriptor();
+﻿namespace Ephemera.SemanticAnalysis.Typing;
 
-        public override string ToString() => "Invalid";
-    }
+public class InvalidTypeDescriptor : TypeDescriptor
+{
+    public InvalidTypeDescriptor() { }
+    public static readonly InvalidTypeDescriptor Invalid = new InvalidTypeDescriptor();
+
+    public override string ToString() => "Invalid";
 }

@@ -1,16 +1,15 @@
 ﻿using Ephemera.Lexing;
 
-namespace Ephemera.Parsing.Expressions
+namespace Ephemera.Parsing.Expressions;
+
+public class NullExpr : OperandExpr
 {
-    public class NullExpr : OperandExpr
+    public Token NullToken { get; }
+
+    public NullExpr(Token nullToken)
     {
-        public Token NullToken { get; }
-
-        public NullExpr(Token nullToken)
-        {
-            NullToken = nullToken;
-        }
-
-        public override string ToString() => "null";
+        NullToken = nullToken;
     }
+
+    public override string ToString() => "null";
 }

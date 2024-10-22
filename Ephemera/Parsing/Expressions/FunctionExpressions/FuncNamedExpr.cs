@@ -1,16 +1,15 @@
 ﻿using Ephemera.Lexing;
 
-namespace Ephemera.Parsing.Expressions
-{
-    public class FuncNamedExpr : FuncDefinitionBaseExpr
-    {
-        public bool IsExtension { get; }
-        public Token Identifier { get; }
+namespace Ephemera.Parsing.Expressions;
 
-        public FuncNamedExpr(FuncSignatureExpr signature) : base(signature)
-        {
-            IsExtension = signature.IsExtension;
-            Identifier = signature.Identifier;
-        }
+public class FuncNamedExpr : FuncDefinitionBaseExpr
+{
+    public bool IsExtension { get; }
+    public Token Identifier { get; }
+
+    public FuncNamedExpr(FuncSignatureExpr signature) : base(signature)
+    {
+        IsExtension = signature.IsExtension;
+        Identifier = signature.Identifier;
     }
 }

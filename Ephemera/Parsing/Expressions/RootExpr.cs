@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
 
-namespace Ephemera.Parsing.Expressions
-{
-    public class RootExpr : Expr
-    {
-        public IReadOnlyList<Expr> Expressions { get; }
+namespace Ephemera.Parsing.Expressions;
 
-        public RootExpr(IReadOnlyList<Expr> expressions)
-        {
-            Expressions = expressions;
-        }
+public class RootExpr : Expr
+{
+    public IReadOnlyList<Expr> Expressions { get; }
+
+    public RootExpr(IReadOnlyList<Expr> expressions)
+    {
+        Expressions = expressions;
     }
 }

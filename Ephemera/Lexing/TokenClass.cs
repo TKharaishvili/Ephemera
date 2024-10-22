@@ -1,82 +1,81 @@
-﻿namespace Ephemera.Lexing
+﻿namespace Ephemera.Lexing;
+
+public enum TokenClass
 {
-    public enum TokenClass
-    {
-        NumberLiteral,
-        StringLiteral,
+    NumberLiteral,
+    StringLiteral,
 
-        //operators
-        PlusOperator,
-        MinusOperator,
-        TimesOperator,
-        DivisionOperator,
-        PercentOperator,
+    //operators
+    PlusOperator,
+    MinusOperator,
+    TimesOperator,
+    DivisionOperator,
+    PercentOperator,
 
-        AssignmentOperator,
+    AssignmentOperator,
 
-        GreaterOperator,
-        GreaterOrEqualsOperator,
-        LessOperator,
-        LessOrEqualsOperator,
-        EqualsOperator,
-        NotEqualsOperator,
-        NegationOperator,
-        AndOperator,
-        OrOperator,
+    GreaterOperator,
+    GreaterOrEqualsOperator,
+    LessOperator,
+    LessOrEqualsOperator,
+    EqualsOperator,
+    NotEqualsOperator,
+    NegationOperator,
+    AndOperator,
+    OrOperator,
 
-        FatArrow,
+    FatArrow,
 
-        DotOperator,
-        DotDotOperator,
-        QuestionDotOperator,
-        QuestionQuestionOperator,
-        //operators
+    DotOperator,
+    DotDotOperator,
+    QuestionDotOperator,
+    QuestionQuestionOperator,
+    //operators
 
-        OpenParen,
-        CloseParen,
-        OpenSquare,
-        CloseSquare,
-        OpenCurly,
-        CloseCurly,
+    OpenParen,
+    CloseParen,
+    OpenSquare,
+    CloseSquare,
+    OpenCurly,
+    CloseCurly,
 
-        Colon,
-        Comma,
-        QuestionMark,
+    Colon,
+    Comma,
+    QuestionMark,
 
-        Identifier,
-        TypeParam,
+    Identifier,
+    TypeParam,
 
-        //keywords
-        IfKeyword,
-        ElifKeyword,
-        ElseKeyword,
+    //keywords
+    IfKeyword,
+    ElifKeyword,
+    ElseKeyword,
 
-        TrueKeyword,
-        FalseKeyword,
+    TrueKeyword,
+    FalseKeyword,
 
-        DefKeyword,
+    DefKeyword,
 
-        UnitKeyword,
-        BoolKeyword,
-        NumberKeyword,
-        StringKeyword,
-        NullKeyword,
+    UnitKeyword,
+    BoolKeyword,
+    NumberKeyword,
+    StringKeyword,
+    NullKeyword,
 
-        WhileKeyword,
-        SkipKeyword,
-        BreakKeyword,
+    WhileKeyword,
+    SkipKeyword,
+    BreakKeyword,
 
-        FunKeyword,
-        PreKeyword,
-        ReturnKeyword,
-        //keywords
+    FunKeyword,
+    PreKeyword,
+    ReturnKeyword,
+    //keywords
 
-        AttributeStart,
-        AttributeEnd,
+    AttributeStart,
+    AttributeEnd,
 
-        //trivia
-        Whitespace,
-        NewLine,
-        //trivia
-    }
+    //trivia
+    Whitespace,
+    NewLine,
+    //trivia
 }

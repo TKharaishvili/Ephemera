@@ -96,11 +96,9 @@ public class OperatorPrecedenceE2eTests
     [Fact]
     public async Task Or_Binds_Stronger_Than_Null_Coalescing()
     {
-        var code = @"
-def f: bool? = false
-def result = f ?? false || true
-";
-        var actual = await TH.CompileCode(code);
+        var contextSrc = "def f: bool? = false";
+        var src = "f ?? false || true";
+        var actual = await TH.CompileExpression(src, contextSrc);
         Assert.Equal(false, actual);
     }
 
@@ -110,11 +108,8 @@ def result = f ?? false || true
     [InlineData("83 % (n ?? 10)", 3)]
     public async Task Parenthezied_Binds_Stronger_Than_Multiplication_Division_And_Modulo(string expression, decimal expected)
     {
-        var code = $@"
-def n: number? = null
-def result = {expression}
-";
-        var actual = await TH.CompileCode(code);
+        var contextSrc = "def n: number? = null";
+        var actual = await TH.CompileExpression(expression, contextSrc);
         Assert.Equal(expected, actual);
     }
 }

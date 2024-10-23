@@ -38,7 +38,7 @@ internal static class TestHelpers
         return Task.FromResult(result);
     }
 
-    internal static async Task<object> CompileCode(string code)
+    private static async Task<object> CompileCode(string code)
     {
         var cs = TranspileToCSharp(code);
         var state = await CSharpScript.RunAsync(cs);

@@ -19,7 +19,7 @@ public class SemanticAnalyser
 
     private uint loopCount;
     private bool insideLoop => loopCount > 0;
-    
+
     private bool insideFunction => funcStack.Count > 0;
     public Stack<FuncNamedNode> funcStack = new Stack<FuncNamedNode>();
 
@@ -195,7 +195,12 @@ public class SemanticAnalyser
         var operand = expr as OperandExpr;
         if (operand != null)
         {
-            return AnalyseOperand(operand);
+            var node = AnalyseOperand(operand);
+            if (node is not FuncInvocationNode)
+            {
+                AddError(ErrorMessages.CantUseExpressionsAsStatements, node);
+            }
+            return node;
         }
 
         var definition = expr as DefinitionExpr;

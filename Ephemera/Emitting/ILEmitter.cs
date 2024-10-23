@@ -71,45 +71,37 @@ public class ILEmitter
         module.Types.Add(_class);
     }
 
-    public Assembly Emit(IReadOnlyList<SemanticNode> nodes)
+    public Assembly Emit(FuncDefinitionNode funcDefinition)
     {
-        var newNodes = new List<SemanticNode>(nodes);
-        var lastOperand = nodes.Last() as OperandNode;
-        if (lastOperand != null)
-        {
-            newNodes[newNodes.Count - 1] = new ReturnNode(new Expr(), lastOperand.TypeDescriptor, lastOperand);
-        }
-
-        var returnType = lastOperand?.TypeDescriptor ?? new SimpleTypeDescriptor(SimpleType.Unit);
-        EmitFuncDefinition(_methodName, [], returnType, newNodes);
+        EmitFuncDefinition(funcDefinition);
 
         var ms = new MemoryStream();
         _assembly.Write(ms);
         return Assembly.Load(ms.GetBuffer());
     }
 
-    private void EmitFuncDefinition(string name, IReadOnlyList<DefinitionNode> @params, TypeDescriptor returnType, IReadOnlyList<SemanticNode> statements)
+    private void EmitFuncDefinition(FuncDefinitionNode funcDefinition)
     {
-        var method = new MethodDefinition(name, MethodAttributes.Public | MethodAttributes.Static, GetType(returnType));
+        var method = new MethodDefinition(funcDefinition.Name, MethodAttributes.Public | MethodAttributes.Static, GetType(funcDefinition.ReturnType));
         var methodSymbols = new Dictionary<DefinitionNode, (ParameterDefinition Param, VariableDefinition Var)>();
         _class.Methods.Add(method);
-        _methods.Add(name, method);
+        _methods.Add(funcDefinition.Name, method);
 
         // Expressions like x < y < z need to store an intermediate number value somewhere and
         // that's what this variable is for. Only functions that use such expressions would need it
         // but my focus is not on optimisation at the moment so I'm declaring it in every function
         method.Body.Variables.Add(new VariableDefinition(_decimalRef));
 
-        for (int i = 0; i < @params.Count; i++)
+        for (int i = 0; i < funcDefinition.Params.Count; i++)
         {
-            var param = @params[i];
+            var param = funcDefinition.Params[i];
             method.Parameters.Add(new ParameterDefinition(param.Name, ParameterAttributes.None, GetType(param.Type)));
             methodSymbols.Add(param, (method.Parameters[i], null));
         }
 
         var il = method.Body.GetILProcessor();
 
-        foreach (var statement in statements)
+        foreach (var statement in funcDefinition.Body.Children)
         {
             Emit(statement, il, method, methodSymbols);
         }
@@ -264,7 +256,7 @@ public class ILEmitter
                     }
                 case FuncDefinitionNode fd:
                     {
-                        EmitFuncDefinition(fd.Name, fd.Params, fd.ReturnType, fd.Body.Children);
+                        EmitFuncDefinition(fd);
                         break;
                     }
                 case FuncInvocationNode fi:
